@@ -9,7 +9,7 @@ using namespace common;
 
 int main(int argc, char** argv){
 
-	lcm::LCM handler, handler2, handler3;
+	lcm::LCM handler, handler2, handler3, handler4;
 
 	if (!handler.good() && !handler2.good() && !handler3.good())
 		return 1;
@@ -23,26 +23,40 @@ int main(int argc, char** argv){
 	Lander lander;
 
 	lcm::Subscription *sub   = handler.subscribe("vision_position_estimate", &CallbackHandler::visionEstimateCallback, &call);
-	lcm::Subscription *sub2  = handler2.subscribe("platform/pose", &CallbackHandler::positionSetpointCallback, &call); 
+	
+	//lcm::Subscription *sub2  = handler2.subscribe("Landing_Site/pose", &CallbackHandler::positionSetpointCallback, &call); 
 	//topic for platform pose
+
+	lcm::Subscription *sub4  = handler4.subscribe("apriltag_vision_system", &CallbackHandler::ApriltagCallback, &call); 
+	//topic of the vision system (Apriltag)	
 
 	lcm::Subscription *sub3  = handler3.subscribe("actual_task", &CallbackHandler::actualTaskCallback, &call);
 
 	sub ->setQueueCapacity(1);
-	sub2->setQueueCapacity(1);
+	
+	//sub2->setQueueCapacity(1);
+	
 	sub3->setQueueCapacity(1);
+	
+	sub4->setQueueCapacity(1);
 
-	struct pollfd fds[2];
+
+	struct pollfd fds[3];
 
 	fds[0].fd = handler3.getFileno(); // Actual task
 	fds[0].events = POLLIN;
 
-	fds[1].fd = handler2.getFileno(); // Square pose
+	fds[1].fd = handler4.getFileno(); // Square pose
 	fds[1].events = POLLIN;
+
+	//fds[2].fd = handler2.getFileno(); // Square pose
+	//fds[2].events = POLLIN;
+
 
     bool waiting = true;
 
 	MavState platform;
+	MavState visionSystem;
 
 	while(0==handler.handle()){
 
@@ -64,11 +78,22 @@ int main(int argc, char** argv){
 
 		if(fds[1].revents & POLLIN){
 
+			handler4.handle();
+			visionSystem = call._relative_pos;
+            autom.setVisionFeedback(visionSystem);
+
+		}
+/*
+		if(fds[2].revents & POLLIN){
+
 			handler2.handle();
 			platform = call._position_sp;
+            
             autom.setPlatformState(platform);
 
 		}
+*/
+
 
         if(!waiting) {
 

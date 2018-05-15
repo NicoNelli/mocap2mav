@@ -32,6 +32,13 @@ void Automatic::setTask(exec::task rTask)
 
 void Automatic::handleCommands() {
 
+    /*
+    The automatic class has a member 'std::unique_ptr<Command> _actualCommand' which is a template of the class Command.
+    In the above line, being Idle, Move , Takeoff and Land derived classes from the command one, I set only the variable of the Command one 
+    which Idle or Move or Land or Takeoff inherits.
+
+    */
+
     std::cout << "Command: " << printAction(_actualTask.action) <<std::endl;
     switch (_actualTask.action){
 
@@ -54,7 +61,7 @@ void Automatic::handleCommands() {
 
         case actions::LAND:
 
-            _actualCommand = std::unique_ptr<Command>(new Land(&_state,&_comm,&_actualTask,&_platformState));
+            _actualCommand = std::unique_ptr<Command>(new Land(&_state,&_comm,&_actualTask,&_platformState,&_visionFeedbackPose));
             std::cout << "Actual command: Land" << std::endl;
             break;
         case actions::ROTATE:
@@ -72,6 +79,13 @@ void Automatic::handleCommands() {
 void Automatic::executeCommand() {
     this->_actualCommand->execute();
 }
+
+void Automatic::setVisionFeedback(MavState pose){
+
+    _visionFeedbackPose = pose;
+
+}
+
 
 void Automatic::setPlatformState(MavState pose) {
     _platformState = pose;

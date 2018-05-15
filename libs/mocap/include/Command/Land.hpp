@@ -18,6 +18,8 @@ private:
     double _yawin;
     int    _plat;
     MavState* _platformPose;
+    MavState* _VisionPose;
+
     Lander _lander;
 
     double calculateDescendRate(double dz,double drate_max,double drate_min, double tmax, double tmin){
@@ -92,7 +94,7 @@ private:
     }
 
 public:
-    Land(MavState *_state, MavState *_comm,exec::task *_actualTask, MavState* _platform) : Command(_state, _comm, _actualTask) , _plat(_plat), _platformPose(_platform){}
+    Land(MavState *_state, MavState *_comm,exec::task *_actualTask, MavState* _platform, MavState* _Vision) : Command(_state, _comm, _actualTask) , _plat(_plat), _platformPose(_platform), _VisionPose(_Vision){}
 
     void execute() override {
         land();

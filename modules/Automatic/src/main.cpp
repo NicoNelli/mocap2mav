@@ -83,14 +83,22 @@ int main(int argc, char** argv){
 			handler2.handle();
 
             platform = call._position_sp;
+            //DEBUG
+			//std::cout<<"x:"<<platform.getX()<<std::endl;
+    		//std::cout<<"y:"<<platform.getY()<<std::endl;
+    		std::cout<<"z:"<<platform.getZ()<<std::endl;
             autom.setPlatformState(platform);
 		}
 
 		if(fds[2].revents & POLLIN){
 
-			handler2.handle();
+			handler4.handle();
 			
 			visionSystem = call._relative_pos;
+			//DEBUG
+			//std::cout<<"x:"<<visionSystem.getX()<<std::endl;
+    		//std::cout<<"y:"<<visionSystem.getY()<<std::endl;
+    		std::cout<<"z:"<<visionSystem.getZ()<<std::endl;
             autom.setVisionFeedback(visionSystem);
 
 		}

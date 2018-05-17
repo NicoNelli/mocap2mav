@@ -21,13 +21,18 @@ Lander::Lander()
 
 
     initStateMachine();
+    //set the state machine
+
     _actualState = _machine.getActualNodeId();
+    //set the actual state of the machine, intially is is INIT
+
     _err_prev = _err;
     _holdPIDX.setMaxIOutput(params_automatic::maxIntValue);
     _holdPIDY.setMaxIOutput(params_automatic::maxIntValue);
+    //put a saturation for the integral part of the PID
 
     _holdPIDX.setOutputLimits(params_automatic::maxOutput);
-
+    //put a saturation for the whole PID
 }
 
 void Lander::setState(MavState pose) {
@@ -44,7 +49,11 @@ MavState Lander::getCommand() {
 
 void Lander::initStateMachine() {
 
+    switchSensor = false;
+
     //Link signals
+    //assign initialized errors of the Lander class with
+    //the one of the LandMachine.
     _machine._horizontaErr =  &_horizontaErr;
     _machine._verticalErr  =  &_verticalErr;
     _machine._tauErr       =  &_tauErr;
@@ -63,6 +72,8 @@ void Lander::initStateMachine() {
 
 
     //Link states
+    //keep in mind that _nextState object is inherited from the AbstractLandState class.
+    //the following instructions set the machine state.
     _initS._nextState    = &_holdS;
 
     _holdS._nextAscState = &_asceS;
@@ -81,10 +92,12 @@ void Lander::initStateMachine() {
 
     _landS._nextState    = &_asceS;
 
-    _machine.setStatePtr(&_initS);
+    _machine.setStatePtr(&_initS); //set the state with the INIT one.
 
     _tauHold = 0.5 * params_automatic::platformLenght;
     _tauLost = params_automatic::platformLenght * 0.7;
+    //this two parameters are thresholds for the horizontal error.
+
 
     //Print actual state
     std::cout << "Actual state: " << _machine.getActualNodeId() << std::endl;
@@ -102,17 +115,24 @@ void Lander::setVisionPose(const MavState VisionPose) {
 
 void Lander::updateSignals() {
 
-    //Compute horizontal error
-    double xTemp = _state.getX();
-    double yTemp = _state.getY();
-    double zTemp = _state.getZ();
-    double xPlatTemp = _platformState.getX();
-    double yPlatTemp = _platformState.getY();
-    double zPlatTemp = _platformState.getZ();
+    double dx;
+    double dy;
+    double dz;
 
-    double dx = xPlatTemp - xTemp;
-    double dy = yPlatTemp - yTemp;
-    double dz = zPlatTemp - zTemp + PLATFORM_OFFSET;
+    switchSensor = abs( _VisionPose.getZ() ) > 0.5;
+    //above half meters use vision system for altitude value 
+    //otherwise, ultrasonic sensors.
+
+    if(!switchSensor)
+        dz = _platformState.getZ() - _state.getZ() + PLATFORM_OFFSET;
+    
+    else{
+        dz = _VisionPose.getZ();
+    }
+    
+    dx = _VisionPose.getX();
+    dy = _VisionPose.getY();
+
 
     _err[0] = dx;
     _err[1] = dy;
@@ -121,6 +141,7 @@ void Lander::updateSignals() {
     _horizontaErr = _err.norm();
     _err[2]       = dz;
     _verticalErr  = _err[2];
+    //set the horizontal and vertical error.
 
     //Increment N if needed
     if (_horizontaErr < _tauHold) {
@@ -133,12 +154,15 @@ void Lander::updateSignals() {
         _NLost++;
     }
 
-    _holding  = (_NHold > params_automatic::NFramesHold);
-    _lost     = (_NLost > params_automatic::NFramesLost);
+    _holding  = (_NHold > params_automatic::NFramesHold);//Number of consecutive frames in which tracking is considered valid.
+
+    _lost     = (_NLost > params_automatic::NFramesLost);//Number of consecutive frames in which tracking is considered not valid.
+
     _centered = _horizontaErr < _tauHold * 0.5;
 
     if(_actualState == AbstractLandState::states::R2LA || _actualState == AbstractLandState::states::COMP || _actualState == AbstractLandState::states::LAND){
-
+    //RL2A state is between hold and comp states.
+        
         //Reset NComp
         if(_prevState == AbstractLandState::states::HOLD) _NComp = 0;
 
@@ -181,7 +205,23 @@ void Lander::updateSignals() {
 void Lander::handleMachine() {
 
     updateSignals();
+    /*
+    --computes the horizontal and vertical error of the actual state.
+
+    --check if the horizontal error is under a given threshold(_tauHold and _tauLost)
+      incrementing or nullifying NLost or NHold.
+
+    --then, st the boolean value _holding, lost, centering based on the value of NLost or Nhold. 
+
+    --if the UAV is centered the variable NComp is incremented.
+
+    */
+
+
     _machine.handle();
+    //Being such function virtual, will be defined by its derived classes.
+    //depending on the actual state a different function is called.
+
 }
 
 int Lander::getActualMachineState() {
@@ -190,9 +230,12 @@ int Lander::getActualMachineState() {
 
 void Lander::run() {
 
-    _prevState = _actualState;
+    _prevState = _actualState; //set the previous state with the actual one, initially is INIT.
+
     handleMachine();
-    _actualState = _machine.getActualNodeId();
+
+    _actualState = _machine.getActualNodeId();//it obtains the new state
+
     managetime();
 
     static bool initDone = false;
@@ -201,38 +244,59 @@ void Lander::run() {
         case (AbstractLandState::states::INIT):
             if(!initDone){
                 init();
+                /*
+                it is divided in two parts:
+                    --set the setpoint to the relative position
+                    --set the z axis to the max one 7 meters.
+                */
                 initDone = true;
             }
             break;
 
         case (AbstractLandState::states::HOLD):
+            std::cout<<"HOLD"<<std::endl;
+
             initDone = false;
-            clampZSP();
+            clampZSP();//it takes the Z of the UAV in a interval specified.
+
             hold();
+            //control the x and y error position. 
             break;
         case (AbstractLandState::states::DESC):
+            std::cout<<"DESC"<<std::endl;
 
             desc();
+            //decrease the z position to 0.1 meters.
             clampZSP();
             break;
         case (AbstractLandState::states::ASCE):
+            std::cout<<"ASCE"<<std::endl;
 
             asce();
+            //increase the z position to 0.1 meters.
             clampZSP();
 
             break;
 
         case (AbstractLandState::states::R2LA):
+            std::cout<<"R2LA"<<std::endl;
+
             clampZSP();
             hold();
             break;
 
         case (AbstractLandState::states::COMP):
+            std::cout<<"COMP"<<std::endl;
+
             hold();
             comp();
+            //compensation of the altitude
             break;
         case (AbstractLandState::states::LAND):
+            std::cout<<"LAND"<<std::endl;
+
             land();
+            //landing phase.
             break;
 
         default:
@@ -314,9 +378,10 @@ void Lander::hold() {
     _holdPIDX.setDt(_dt);
     _holdPIDY.setDt(_dt);
 
-    double xTarget = _holdPIDX.getOutput(_state.getX(), _platformState.getX());
-    double yTarget = _holdPIDY.getOutput(_state.getY(), _platformState.getY());
-    Eigen::Vector2d targetVect(xTarget + _platformState.getX(),yTarget + _platformState.getY());
+    double xTarget = _holdPIDX.getOutput(0,_VisionPose.getX());//0 because is already a relative error.
+    double yTarget = _holdPIDY.getOutput(0,_VisionPose.getY());
+
+    Eigen::Vector2d targetVect(_state.getX() + xTarget , _state.getY() + yTarget);
 
 
     updateIntegrals();
@@ -333,20 +398,29 @@ void Lander::asce() {
 
     _holdPIDX.reset();
     _holdPIDY.reset();
-    _setPoint.setZ(_setPoint.getZ() + 0.1);
+    _setPoint.setZ(_setPoint.getZ() + 0.10);
 
 }
 
 void Lander::desc() {
 
 
-    _setPoint.setZ(_setPoint.getZ() - 0.1);
+    _setPoint.setZ(_setPoint.getZ() - 0.10);
 }
 
 void Lander::comp() {
 
+    double dz;
+    if(switchSensor)
+        dz = _VisionPose.getZ() + PLATFORM_OFFSET;
+    
+    else{
+        dz = - _state.getZ() + _platformState.getZ() + PLATFORM_OFFSET;
+        std::cout<<"UTRASENSOR"<<std::endl;
+    }
+
+
     //Calculate desired vertical velocity in order to compensate oscillations
-    double dz = - _state.getZ() + _platformState.getZ() + PLATFORM_OFFSET;
     double desc = common::interpolate(fabs(dz), DRATE_MAX, DRATE_MIN, TMAX, TMIN);
     double z_target_v = _platformState.getVz() - desc;
     double err_v = z_target_v - _state.getVz();
@@ -372,6 +446,7 @@ void Lander::land() {
 
     resetSetPoint();
     _setPoint.setZ(_state.getZ()-10);
+    _setPoint.setType(MavState::POSITION);
 
 }
 

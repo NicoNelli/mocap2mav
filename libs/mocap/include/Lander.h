@@ -28,6 +28,7 @@ class Lander {
 public:
     Lander();
 
+    void setVisionPose(const MavState VisionPose);
     void setPlatformState(const MavState platformState);
     void initStateMachine();
     void setState(MavState pose);
@@ -39,12 +40,15 @@ public:
     MavState getCommand();
     void run();
 
+    bool switchSensor; //used to switch between vision system and ultrasonic sensor.
 private:
 
-    LandMachine  _machine;
+    LandMachine  _machine; //derived from machine one.
+
     MavState _state;
     MavState _setPoint;
     MavState _platformState;
+    MavState _VisionPose;
     MiniPID  _holdPIDX;
     MiniPID  _holdPIDY;
     Parameters* _param;
@@ -53,13 +57,17 @@ private:
 
 
     //Create states
-    InitState       _initS;
-    HoldState       _holdS;
-    AsceState       _asceS;
-    DescState       _descS;
-    RToLandState    _rtolS;
-    CompState       _compS;
-    LandState       _landS;
+    //each states are derived from AbstractLandState class.
+    //The class AbstractLandState is derived from AbstractState.
+
+    InitState       _initS; //its constructor set its ID to INIT
+    HoldState       _holdS; //its constructor set its ID to HOLD
+    AsceState       _asceS; //its constructor set its ID to ASCE
+    DescState       _descS; //its constructor set its ID to DESC
+    RToLandState    _rtolS; //its constructor set its ID to R2LA
+    CompState       _compS; //its constructor set its ID to COMP
+    LandState       _landS; //its constructor set its ID to LAND
+
 
     int _actualState;
     int _prevState;

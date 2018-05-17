@@ -85,8 +85,12 @@ private:
         if (_plat == 0){
             simpleLanding((float)_xin,(float)_yin,0);
         } else {
-            _lander.setState(*_state);
-            _lander.setPlatformState(*_platformPose);
+            _lander.setState(*_state);//set the state of the UAV
+
+            _lander.setPlatformState(*_platformPose);//set the platformPose
+
+            _lander.setVisionPose(*_VisionPose); //set the information coming from the vision system
+
             _lander.run();
             *_comm = _lander.getCommand();
         }

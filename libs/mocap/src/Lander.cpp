@@ -95,6 +95,11 @@ void Lander::setPlatformState(const MavState platformState) {
     _platformState = platformState;
 }
 
+void Lander::setVisionPose(const MavState VisionPose) {
+    _VisionPose = VisionPose;
+}    
+
+
 void Lander::updateSignals() {
 
     //Compute horizontal error

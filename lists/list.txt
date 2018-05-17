@@ -1,0 +1,10 @@
+type=takeoff
+z=5.256
+type=move
+x=-0.5
+y=-0.5
+z=6
+alpha=1
+type=land
+platform=1
+#

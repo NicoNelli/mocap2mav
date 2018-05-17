@@ -52,6 +52,8 @@ public:
     }
 
     void getSignals(){
+        //copy the value of the LandMachine class into the ones of 
+        //AbstractLandState class.
 
          _horizontaErr = *(_contextL->_horizontaErr);
          _verticalErr  = *(_contextL->_verticalErr);

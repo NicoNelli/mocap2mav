@@ -86,7 +86,7 @@ int main(int argc, char** argv){
             //DEBUG
 			//std::cout<<"x:"<<platform.getX()<<std::endl;
     		//std::cout<<"y:"<<platform.getY()<<std::endl;
-    		std::cout<<"z:"<<platform.getZ()<<std::endl;
+    		//std::cout<<"z:"<<platform.getZ()<<std::endl;
             autom.setPlatformState(platform);
 		}
 
@@ -98,7 +98,7 @@ int main(int argc, char** argv){
 			//DEBUG
 			//std::cout<<"x:"<<visionSystem.getX()<<std::endl;
     		//std::cout<<"y:"<<visionSystem.getY()<<std::endl;
-    		std::cout<<"z:"<<visionSystem.getZ()<<std::endl;
+    		//std::cout<<"z:"<<visionSystem.getZ()<<std::endl;
             autom.setVisionFeedback(visionSystem);
 
 		}

@@ -39,7 +39,7 @@ namespace params_automatic {
     static const double KiHold          = 0.0005; //0.1
 
     //Proportional gain for velocity tracking
-    static const double KPCompV          = 0.9;
+    static const double KPCompV          = 0.6;
 
     //Integral clamping values
     static const double maxIntValue     = 5;

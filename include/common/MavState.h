@@ -78,8 +78,14 @@ public:
 
         this->setType(m.getType());
 
+	this->VisionDataUpdated = m.VisionDataUpdated;
+
     }
     long int timestamp;
+
+    //to check if visionData are updated.
+    bool VisionDataUpdated;
+
 
 private:
 

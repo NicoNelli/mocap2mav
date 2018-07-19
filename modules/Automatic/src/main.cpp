@@ -3,11 +3,15 @@
 #include "mocap/include/Automatic.h"
 #include "common/CallbackHandler.hpp"
 #include "poll.h"
+#include "utils/TimeHelpers.hpp"
+#include "common/MavState.h"
 //#include "common/Parameters.hpp"
 
 using namespace common;
 
 int main(int argc, char** argv){
+
+	Duration VisionData(1); //Timer of 1 second
 
 	lcm::LCM handler, handler2, handler3, handler4;
 
@@ -94,12 +98,34 @@ int main(int argc, char** argv){
 
 			handler4.handle();
 			
+			VisionData.updateTimer(); //it takes the actual time.
+			VisionData._start = VisionData._actualTime; 
+			//every time I entered here there will be data from vision system.
+			//It is necessary to reset the duration of the timer(the dt will be 0.)
+
+
 			visionSystem = call._relative_pos;
+			visionSystem.VisionDataUpdated = true; //the vision data are updated
+
+
+
 			//DEBUG
 			//std::cout<<"x:"<<visionSystem.getX()<<std::endl;
     		//std::cout<<"y:"<<visionSystem.getY()<<std::endl;
     		//std::cout<<"z:"<<visionSystem.getZ()<<std::endl;
             autom.setVisionFeedback(visionSystem);
+
+		}
+		else {
+
+			if(VisionData.isExpired()) {//if It passed one second the vision data are not
+				//available
+				
+				visionSystem.VisionDataUpdated = false; //the vision data are updated
+				autom.setVisionFeedback(visionSystem);
+			}
+
+
 
 		}
 

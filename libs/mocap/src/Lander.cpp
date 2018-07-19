@@ -154,11 +154,21 @@ void Lander::updateSignals() {
         _NLost++;
     }
 
-    _holding  = (_NHold > params_automatic::NFramesHold);//Number of consecutive frames in which tracking is considered valid.
+    if( switchSensor ) {
+        _holding  = (_NHold > params_automatic::NFramesHold && _VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered valid.
 
-    _lost     = (_NLost > params_automatic::NFramesLost);//Number of consecutive frames in which tracking is considered not valid.
+        _lost     = (_NLost > params_automatic::NFramesLost || !_VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered not valid.
 
-    _centered = _horizontaErr < _tauHold * 0.5;
+        _centered = (_horizontaErr < _tauHold * 0.5 && _VisionPose.VisionDataUpdated );
+    }
+    else{
+        _holding  = (_NHold > params_automatic::NFramesHold );//Number of consecutive frames in which tracking is considered valid.
+
+        _lost     = (_NLost > params_automatic::NFramesLost );//Number of consecutive frames in which tracking is considered not valid.
+
+        _centered = (_horizontaErr < _tauHold * 0.5 );
+
+    }
 
     if(_actualState == AbstractLandState::states::R2LA || _actualState == AbstractLandState::states::COMP || _actualState == AbstractLandState::states::LAND){
     //RL2A state is between hold and comp states.
@@ -352,7 +362,7 @@ void Lander::init() {
     resetSetPoint();
 
     //Go to max tracking height
-    _setPoint.setZ(params_automatic::zMax);
+    //_setPoint.setZ(params_automatic::zMax);
 
 }
 

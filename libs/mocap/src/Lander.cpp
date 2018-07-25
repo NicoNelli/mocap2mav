@@ -79,6 +79,7 @@ void Lander::initStateMachine() {
     _holdS._nextAscState = &_asceS;
     _holdS._nextDesState = &_descS;
     _holdS._nextState    = &_rtolS;
+    _holdS._nextInitState = &_initS;
 
     _asceS._nextState    = &_holdS;
 
@@ -154,7 +155,7 @@ void Lander::updateSignals() {
         _NLost++;
     }
 
-    if( switchSensor ) {
+    if( switchSensor ) { //in this condition is also taken into account the update vision data 
         _holding  = (_NHold > params_automatic::NFramesHold && _VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered valid.
 
         _lost     = (_NLost > params_automatic::NFramesLost || !_VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered not valid.
@@ -201,6 +202,8 @@ void Lander::updateSignals() {
     std::cout << "STATE: " << _actualState<< std::endl;
     std::cout << "HERRO: " << _horizontaErr<< std::endl;
     std::cout << "HERRV: " << _verticalErr<< std::endl;
+    std::cout << "switchSensor" << switchSensor<< std::endl;
+    std::cout << "visionData" <<_VisionPose.VisionDataUpdated<<std::endl;
     std::cout << "NHOLD: " << _NHold<< std::endl;
     std::cout << "NLOST: " << _NLost<< std::endl;
     std::cout << "NCOMP: " << _NComp<< std::endl;
@@ -253,7 +256,8 @@ void Lander::run() {
 
         case (AbstractLandState::states::INIT):
             if(!initDone){
-                init();
+           		std::cout<<"INIT"<<std::endl;
+				init();
                 /*
                 it is divided in two parts:
                     --set the setpoint to the relative position

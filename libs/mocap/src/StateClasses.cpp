@@ -27,8 +27,11 @@ void HoldState::handle(){
     //before compensation,this value should be above the minimum platform value.
     //descending phase is valid if the horizontal error is under a given threshold and z distance above zMin.
 
+    bool InitValid = _lost && !(_setPoint.getZ()   < params_automatic::zMax - 0.1);
+    //if the platform is lost and vision data are not available coming back to the initState.
 
-    bool asceValid = _lost    && (_setPoint.getZ()   < params_automatic::zMax - 0.1);
+
+    bool asceValid = _lost && (_setPoint.getZ()   < params_automatic::zMax - 0.1);
     //coming up if the platform is lost and the z distance in under zMax
 
     bool compValid = _holding && (fabs(_state.getZ() - params_automatic::zMin) < 0.2) && _centered;
@@ -50,6 +53,13 @@ void HoldState::handle(){
         printStateTransition();
         return;
     }
+    if (InitValid){
+        this->_contextL->setStatePtr(_nextInitState); //set the next state(InitState)
+        printStateTransition();
+        return;    
+    }
+
+
 
 }
 void DescState::handle() {

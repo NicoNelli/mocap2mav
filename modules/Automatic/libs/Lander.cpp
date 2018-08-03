@@ -6,7 +6,6 @@
 #include "include/Lander/StatesClasses.hpp"
 #include "Lander/Lander.h"
 #include "parameters.h"
-#include "common/conversions.h"
 
 Lander::Lander()
         : _horizontaErr((double)0)    , _tauHold((double)0), _tauLost((double)0), _tauErr((double)0), _NHold(0),
@@ -40,6 +39,9 @@ MavState Lander::getCommand() {
 
 void Lander::initStateMachine() {
 
+	switchSensor = false; //initially only camera sensor is used for feedback position.
+
+
     //Link signals
     _machine._horizontaErr =  &_horizontaErr;
     _machine._verticalErr  =  &_verticalErr;
@@ -61,9 +63,12 @@ void Lander::initStateMachine() {
     //Link states
     _initS._nextState    = &_holdS;
 
+
     _holdS._nextAscState = &_asceS;
     _holdS._nextDesState = &_descS;
     _holdS._nextState    = &_rtolS;
+    _holdS._nextInitState = &_initS;
+
 
     _asceS._nextState    = &_holdS;
 
@@ -78,7 +83,7 @@ void Lander::initStateMachine() {
     _landS._nextState    = &_asceS;
     _landS._restartState = &_initS;
 
-    _machine.setStatePtr(&_initS);
+    _machine.setStatePtr(&_initS); //set the state with the INIT one.
 
     _tauHold = 0.5 * params_automatic::platformLenght;
     _tauLost = params_automatic::platformLenght * 0.7;
@@ -92,19 +97,36 @@ void Lander::setPlatformState(const MavState platformState) {
     _platformState = platformState;
 }
 
+void Lander::setVisionPose(const MavState VisionPose){
+	_VisionPose = VisionPose;
+}
+
+
 void Lander::updateSignals() {
 
-    //Compute horizontal error
-    double xTemp = _state.getX();
-    double yTemp = _state.getY();
-    double zTemp = _state.getZ();
-    double xPlatTemp = _platformState.getX();
-    double yPlatTemp = _platformState.getY();
-    double zPlatTemp = _platformState.getZ();
+	double dx;
+	double dy;
+	double dz;
 
-    double dx = xPlatTemp - xTemp;
-    double dy = yPlatTemp - yTemp;
-    double dz = zPlatTemp - zTemp + PLATFORM_OFFSET;
+	switchSensor = abs( _VisionPose.getZ() ) > 0.1; //with 0.1 always vision:) 	
+
+	//above half meters use vision system for altitude value
+	//otherwise, ultrasonic sensors.
+/*
+	if(!switchSensor)
+		dz = _platformState.getZ() - _state.getZ() + PLATFORM_OFFSET;
+	
+	else
+		dz = _VisionPose.getZ();
+	std::cout<<"switch:"<<switchSensor<<std::endl;
+*/
+	dz = _VisionPose.getZ();
+	
+	dx = _VisionPose.getX();
+
+	dy = _VisionPose.getY();
+
+	std::cout<<"z:"<<_VisionPose.getZ()<<std::endl;
 
     _err[0] = dx;
     _err[1] = dy;
@@ -125,11 +147,33 @@ void Lander::updateSignals() {
         _NLost++;
     }
 
-    _holding  = (_NHold > params_automatic::NFramesHold);
-    _lost     = (_NLost > params_automatic::NFramesLost);
-    _centered = _horizontaErr < _tauHold * 0.5;
+	_holding  = (_NHold > params_automatic::NFramesHold && _VisionPose.VisionDataUpdated ); 
+
+    	_lost     = (_NLost > params_automatic::NFramesLost || !_VisionPose.VisionDataUpdated ); 
+
+    	_centered = _horizontaErr < _tauHold * 0.5 && _VisionPose.VisionDataUpdated;
+
+
+	/*
+	if( switchSensor ) {
+		_holding  = (_NHold > params_automatic::NFramesHold && _VisionPose.VisionDataUpdated ); 
+
+    	_lost     = (_NLost > params_automatic::NFramesLost || !_VisionPose.VisionDataUpdated ); 
+
+    	_centered = _horizontaErr < _tauHold * 0.5 && _VisionPose.VisionDataUpdated;
+
+	}
+	else{
+		_holding  = (_NHold > params_automatic::NFramesHold); //Number of consecutive frames in which tracking is considered valid
+
+	    _lost     = (_NLost > params_automatic::NFramesLost); //Numbe of consecutive frames in with tracking is not considered valid
+
+   		_centered = _horizontaErr < _tauHold * 0.5;	
+	}
+*/
 
     if(_actualState == AbstractLandState::states::R2LA || _actualState == AbstractLandState::states::COMP || _actualState == AbstractLandState::states::LAND){
+		//R2LA state is between hold and comp state
 
         //Reset NComp
         if(_prevState == AbstractLandState::states::HOLD) _NComp = 0;
@@ -159,6 +203,8 @@ void Lander::updateSignals() {
     std::cout << "STATE: " << _actualState<< std::endl;
     std::cout << "HERRO: " << _horizontaErr<< std::endl;
     std::cout << "HERRV: " << _verticalErr<< std::endl;
+	std::cout << "switchSensor: " << switchSensor << std::endl;
+	std::cout << "VisionData" << _VisionPose.VisionDataUpdated << std::endl;
     std::cout << "NHOLD: " << _NHold<< std::endl;
     std::cout << "NLOST: " << _NLost<< std::endl;
     std::cout << "NCOMP: " << _NComp<< std::endl;
@@ -173,7 +219,22 @@ void Lander::updateSignals() {
 void Lander::handleMachine() {
 
     updateSignals();
-    _machine.handle();
+	/*
+	--computes the horizontal and vertical error of the actual state
+	
+	--check if the horizontal error is under a given threshold(_tauHold and _tauLost)
+	incrementing or nullifying NLost or NHold.
+
+	--then, set the boolean value _holding, lost, centering based on the value of NLost or NHold
+
+	--if the UAV is centered the variable NComp is incremented.
+	*/
+
+
+    _machine.handle(); 
+	//Being such function vrtual, will be defined by its derived classes.
+	//Depending on the actual state a different function is called.
+
 }
 
 int Lander::getActualMachineState() {
@@ -182,9 +243,9 @@ int Lander::getActualMachineState() {
 
 void Lander::run() {
 
-    _prevState = _actualState;
+    _prevState = _actualState; //set the previous state with the actual one, initially is INIT.
     handleMachine();
-    _actualState = _machine.getActualNodeId();
+    _actualState = _machine.getActualNodeId(); //It obtains the new state
     managetime();
 
     static bool initDone = false;
@@ -192,41 +253,62 @@ void Lander::run() {
 
         case (AbstractLandState::states::INIT):
             if(!initDone){
-                init();
+				std::cout<<"INIT"<<std::endl;                
+				init(); 
                 _NHold=0;
                 _NComp=0;
                 _NLost=0;
+
+				/*
+				It is divided in two parts:
+					--set the setpoint to the actual drone position.
+					--set the z axis to the max one 2.5 meters.
+				*/
+
                 initDone = true;
             }
             break;
 
         case (AbstractLandState::states::HOLD):
-            initDone = false;
-            clampZSP();
-            hold();
+			std::cout<<"HOLD"<<std::endl;			
+       
+			initDone = false;
+            clampZSP(); //It keeps the Z of the UAV in a interval specified.
+            
+			hold(); //control the x and y position
+					
             break;
         case (AbstractLandState::states::DESC):
+			std::cout<<"DESC"<<std::endl;
 
             desc();
             clampZSP();
             break;
         case (AbstractLandState::states::ASCE):
+			std::cout<<"ASCE"<<std::endl;
 
             asce();
             clampZSP();
 
             break;
 
+
         case (AbstractLandState::states::R2LA):
+			std::cout<<"R2LA"<<std::endl;			
+
             clampZSP();
             hold();
             break;
 
         case (AbstractLandState::states::COMP):
+			std::cout<<"COMP"<<std::endl;
+
             hold();
             comp();
             break;
         case (AbstractLandState::states::LAND):
+			std::cout<<"LAND"<<std::endl;		
+
             initDone = false;
             land();
             break;
@@ -284,7 +366,7 @@ void Lander::init() {
     resetSetPoint();
 
     //Go to max tracking height
-    _setPoint.setZ(params_automatic::zMax);
+    //_setPoint.setZ(params_automatic::zMax);
 
 }
 
@@ -306,13 +388,15 @@ void Lander::hold() {
      */
 
     Eigen::Vector2d tempVel(_platformState.getVx(),_platformState.getVy());
+	//it takes the velocity of the platform
 
     _holdPIDX.setDt(_dt);
     _holdPIDY.setDt(_dt);
 
-    double xTarget = _holdPIDX.getOutput(_state.getX(), _platformState.getX());
-    double yTarget = _holdPIDY.getOutput(_state.getY(), _platformState.getY());
-    Eigen::Vector2d targetVect(xTarget + _platformState.getX(),yTarget + _platformState.getY());
+    double xTarget = _holdPIDX.getOutput(0, _VisionPose.getX()); //0 cause VisionPose is already a relative position.
+    double yTarget = _holdPIDY.getOutput(0, _VisionPose.getY());
+    
+	Eigen::Vector2d targetVect( _state.getX() + xTarget , _state.getY() + yTarget );
 
 
     updateIntegrals();
@@ -341,8 +425,22 @@ void Lander::desc() {
 
 void Lander::comp() {
 
+	double dz;
+	dz = _VisionPose.getZ() + PLATFORM_OFFSET;
+
+	/*	
+	to use for diversificate visiondata and motion capture.	
+	if(switchSensor)
+		dz = _VisionPose.getZ() + PLATFORM_OFFSET;
+
+	else{
+		dz = - _state.getZ() + _platformState.getZ() + PLATFORM_OFFSET;
+		std::cout<<"ULTRASENSOR"<<std::endl;			
+	
+	}
+*/
+
     //Calculate desired vertical velocity in order to compensate oscillations
-    double dz = - _state.getZ() + _platformState.getZ() + PLATFORM_OFFSET;
     double desc = common::interpolate(fabs(dz), DRATE_MAX, DRATE_MIN, TMAX, TMIN);
     double z_target_v = _platformState.getVz() - desc;
     double err_v = z_target_v - _state.getVz();
@@ -368,16 +466,6 @@ void Lander::land() {
 
     resetSetPoint();
     _setPoint.setZ(_state.getZ()-20);
-
-}
-
-void Lander::allign() {
-
-    //Continuosly change yaw value
-    double yaw_target = _platformState.getYawFromQuat();
-    Eigen::Quaterniond q_interm = yawToQuaternion(yaw_target);
-
-    _setPoint.setOrientation(q_interm);
 
 }
 

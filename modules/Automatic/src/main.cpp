@@ -4,47 +4,60 @@
 #include "common/CallbackHandler.hpp"
 #include "poll.h"
 #include "Command/TakeOff.hpp"
-
+#include "utils/TimeHelpers.hpp"
+#include "common/MavState.h"
 
 using namespace common;
 
 int main(int argc, char** argv){
 
-	lcm::LCM handler, handler2, handler3;
+	lcm::LCM handler, handler2, handler3, handler4;
 
-	if (!handler.good() && !handler2.good() && !handler3.good())
+	Duration VisionData(1); //timer of 1 second
+
+	if (!handler.good() && !handler2.good() && !handler3.good() && !handler4.good())
 		return 1;
 
 	CallbackHandler call;
 	Automatic autom;
 	Lander lander;
 
-	lcm::Subscription *sub   = handler.subscribe("vision_position_estimate", &CallbackHandler::visionEstimateCallback, &call);
-	lcm::Subscription *sub2  = handler2.subscribe("platform/pose", &CallbackHandler::positionSetpointCallback, &call);
+	lcm::Subscription *sub   = handler.subscribe("vision_position_estimate", &CallbackHandler::visionEstimateCallback, &call);//pose of the UAV
+	lcm::Subscription *sub2  = handler2.subscribe("platform/pose", &CallbackHandler::positionSetpointCallback, &call); //absolute pose of the platform
 	lcm::Subscription *sub3  = handler3.subscribe("actual_task", &CallbackHandler::actualTaskCallback, &call);
+	lcm::Subscription *sub4  = handler4.subscribe("apriltag_vision_system", &CallbackHandler::ApriltagCallback, &call); //topic for the vision system.
+
+
 
 	sub ->setQueueCapacity(1);
 	sub2->setQueueCapacity(1);
 	sub3->setQueueCapacity(1);
+	sub4->setQueueCapacity(1);
 
-	struct pollfd fds[2];
+	struct pollfd fds[3];
 
 	fds[0].fd = handler3.getFileno(); // Actual task
 	fds[0].events = POLLIN;
 
 	fds[1].fd = handler2.getFileno(); // Square pose
 	fds[1].events = POLLIN;
+	
+	fds[2].fd = handler4.getFileno(); 
+	fds[2].events = POLLIN;
+
 
     bool waiting = true;
 
 	MavState platform;
+	MavState visionSystem;
+
 
 	while(0==handler.handle()){
 
 		autom.setState(call._vision_pos);
         lander.setState(call._vision_pos);
 
-		int ret = poll(fds,2,0);
+		int ret = poll(fds,3,0);
 
 		if(fds[0].revents & POLLIN){
 
@@ -62,8 +75,40 @@ int main(int argc, char** argv){
 			handler2.handle();
 			platform = call._position_sp;
             autom.setPlatformState(platform);
+			//std::cout<<"x:"<<platform.getX()<<std::endl;
+			//std::cout<<"y:"<<platform.getY()<<std::endl;
+			//std::cout<<"z:"<<platform.getZ()<<std::endl;
 
 		}
+
+		if(fds[2].revents & POLLIN){
+
+			handler4.handle();
+			
+			VisionData.updateTimer(); //it takes the actual time
+			VisionData._start = VisionData._actualTime;
+			//every time I entered here there will be data from vision system
+			//it is necessary to reset the duration of the timer (the dt will be zero)
+
+
+			visionSystem = call._relative_pos;
+			visionSystem.VisionDataUpdated = true;
+            autom.setVisionFeedback(visionSystem);
+			//std::cout<<"x:"<<visionSystem.getX()<<std::endl;
+			//std::cout<<"y:"<<visionSystem.getY()<<std::endl;
+			//std::cout<<"z:"<<visionSystem.getZ()<<std::endl;
+
+		}
+		else {
+			
+			if( VisionData.isExpired() ) {
+				visionSystem.VisionDataUpdated = false;
+				autom.setVisionFeedback(visionSystem);
+			}
+		
+		}
+
+
 
         if(!waiting) {
 

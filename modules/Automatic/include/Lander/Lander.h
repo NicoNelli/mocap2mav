@@ -26,6 +26,7 @@ class Lander {
 public:
     Lander();
 
+    void setVisionPose(const MavState VisionPose);
     void setPlatformState(const MavState platformState);
     void initStateMachine();
     void setState(MavState pose);
@@ -36,12 +37,15 @@ public:
     MavState getCommand();
     void run();
 
+    bool switchSensor; //used to switch between vision system and ultrasonic sensor.
+
 private:
 
     LandMachine  _machine;
     MavState _state;
     MavState _setPoint;
     MavState _platformState;
+	MavState _VisionPose;
     MiniPID  _holdPIDX;
     MiniPID  _holdPIDY;
 
@@ -97,8 +101,6 @@ private:
     //Reset position setpoint to actual position
     void resetSetPoint();
 
-    //Align yaw with platform
-    void allign();
     //Initialize stuff here
     void init();
     //Tracking logic defined here

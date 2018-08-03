@@ -19,8 +19,9 @@ class Automatic
 public:
 
     Automatic();
-    void setState(MavState pose);
-    void setPlatformState(MavState pose);
+    void setState(MavState pose); //set UAV state
+    void setPlatformState(MavState pose); //set platform state
+    void setVisionFeedback(MavState pose); //set relative position using apriltag.
     void setTask(exec::task task);
     exec::task getTask();
     MavState getState();
@@ -32,9 +33,10 @@ public:
     void executeCommand();
 
 private:
-   MavState _state;
-   MavState _platformState;
-   std::unique_ptr<Command> _actualCommand;
+	MavState _state; //pose of the UAV
+	MavState _platformState; //position of the platform
+        MavState _visionFeedbackPose; // relative position between UAV and platform   
+	std::unique_ptr<Command> _actualCommand; // template of class of type Command and its derived
 
 };
 

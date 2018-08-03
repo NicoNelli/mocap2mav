@@ -184,7 +184,7 @@ private:
     }
 };
 
-class Duration : TimeManager{
+class Duration : public TimeManager{
 
 public:
     //Duration starts when created
@@ -197,7 +197,7 @@ public:
         return ((_actualTime - _start) * (this->_toSecs)) >= (_duration);
     }
 
-private:
+public:
     //duration in seconds
     int _duration;
     long int _start;

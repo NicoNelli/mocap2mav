@@ -19,6 +19,8 @@ public:
     MavState _position_sp;
     exec::task _task;
 
+	MavState _relative_pos; //filled by apriltag topic.
+
     bool _landed;
     bool _armed;
     bool _estimate_ready;
@@ -87,6 +89,20 @@ public:
         }
 
     }
+
+	void ApriltagCallback(const lcm::ReceiveBuffer* rbuf, const std::string& chan, const geometry::pose* msg){
+	//callback of the vision system.
+
+		_relative_pos.setPosition((float)msg->position[0],(float)msg->position[1],(float)msg->position[2]);
+
+    	_relative_pos.setV((float)msg->velocity[0],(float)msg->velocity[1],(float)msg->velocity[2]);
+
+    	_relative_pos.setOrientation((float)msg->orientation[0],(float)msg->orientation[1],(float)msg->orientation[2],(float)msg->orientation[3]);
+
+	}
+
+
+
 
     void actualTaskCallback(const lcm::ReceiveBuffer* rbuf, const std::string& chan, const exec::task* msg){
 

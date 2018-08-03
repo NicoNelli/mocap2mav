@@ -21,16 +21,16 @@ namespace params_automatic {
     static const double platformLenght  = 0.65;
 
     //Max altitude for landing procedure
-    static const double zMax            = 2.5;
+    static const double zMax            = 1.2;
 
     //Minimum altitude for landing procedure (before compensating, this value should be above the maximum platform altitude)
-    static double       zMin            = 2.4;
+    static double       zMin            = 0.4;
 
     //Proportional gain times platform velocity
     static const double KpHoldV          = 1;
 
     //Proportional gain times horizontal error
-    static const double KpHold           = 0.78; // 0.5
+    static const double KpHold           = 0.5;//0.78; // 0.5
 
     //Differential gain times horizontal error
     static const double KdHold           = 0.00;

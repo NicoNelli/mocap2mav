@@ -85,6 +85,8 @@ public:
 	//to check if VisionData are updated
 	bool VisionDataUpdated;
 
+	//to check if the ultrasonic information are valid.
+	bool IsValid;
 private:
 
     double _x;

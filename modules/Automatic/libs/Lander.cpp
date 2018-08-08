@@ -102,6 +102,11 @@ void Lander::setVisionPose(const MavState VisionPose){
 }
 
 
+void Lander::setUltrasonicInfo(const MavState UltraInfo) {
+	_UltraInfo = UltraInfo;
+}
+
+
 void Lander::updateSignals() {
 
 	double dx;
@@ -126,7 +131,10 @@ void Lander::updateSignals() {
 
 	dy = _VisionPose.getY();
 
-	std::cout<<"z:"<<_VisionPose.getZ()<<std::endl;
+	std::cout<<"Vision_Z:"<<_VisionPose.getZ()<<std::endl;
+
+	std::cout<<"Ultrasonic_Z:"<<-(_UltraInfo.getZ()+0.1)<<std::endl;
+
 
     _err[0] = dx;
     _err[1] = dy;
@@ -387,7 +395,7 @@ void Lander::hold() {
      * Vdes = desired velocity, K = proportional gain, ep = position error, Vplat = paltform velocity
      */
 
-    Eigen::Vector2d tempVel(_platformState.getVx(),_platformState.getVy());
+    //Eigen::Vector2d tempVel(_platformState.getVx(),_platformState.getVy());
 	//it takes the velocity of the platform
 
     _holdPIDX.setDt(_dt);
@@ -401,7 +409,7 @@ void Lander::hold() {
 
     updateIntegrals();
     //PosSP = PlatPos + K * Vplat
-    targetVect += params_automatic::KpHoldV * tempVel;
+    //targetVect += params_automatic::KpHoldV * tempVel;
 
     //Fill right fields
     _setPoint.setPosition(targetVect(0),targetVect(1),_setPoint.getZ());

@@ -28,6 +28,7 @@ public:
 
     void setVisionPose(const MavState VisionPose);
     void setPlatformState(const MavState platformState);
+	void setUltrasonicInfo(const MavState UltraInfo);
     void initStateMachine();
     void setState(MavState pose);
     void handleMachine();
@@ -46,6 +47,7 @@ private:
     MavState _setPoint;
     MavState _platformState;
 	MavState _VisionPose;
+	MavState _UltraInfo;
     MiniPID  _holdPIDX;
     MiniPID  _holdPIDY;
 

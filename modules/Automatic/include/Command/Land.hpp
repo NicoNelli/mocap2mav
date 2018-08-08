@@ -19,6 +19,7 @@ private:
     int    _plat;
     MavState* _platformPose;
 	MavState* _VisionPose;
+	MavState* _UltrasonicInfo;
     Lander _lander;
 
     double calculateDescendRate(double dz,double drate_max,double drate_min, double tmax, double tmin){
@@ -88,7 +89,11 @@ private:
 
             _lander.setPlatformState(*_platformPose); //set the platformPose
 
-	    _lander.setVisionPose(*_VisionPose); //set the information coming from the vision system
+	    	_lander.setVisionPose(*_VisionPose); //passing the information coming from the vision system to the LanderStateMachine.
+
+			_lander.setUltrasonicInfo(*_UltrasonicInfo); //passing the information coming from the ultrasonic sensor to the LanderStateMachine.
+
+			//here, we can divide the function run() to obtain the actual state of the machine
 
             _lander.run();
 
@@ -98,7 +103,7 @@ private:
     }
 
 public:
-    Land(MavState *_state, MavState *_comm,exec::task *_actualTask, MavState* _platform, MavState* _Vision) : Command(_state, _comm, _actualTask) , _plat(_plat), _platformPose(_platform), _VisionPose(_Vision){}
+    Land(MavState *_state, MavState *_comm,exec::task *_actualTask, MavState* _platform, MavState* _Vision, MavState* _Ultrasonic) : Command(_state, _comm, _actualTask) , _plat(_plat), _platformPose(_platform), _VisionPose(_Vision),_UltrasonicInfo(_Ultrasonic){}
 
     void execute() override {
         land();

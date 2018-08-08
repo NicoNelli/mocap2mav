@@ -41,3 +41,6 @@ add_subdirectory(${MODULES_SRC_DIR}/Security)
 add_subdirectory(${PROJECT_LIB_DIR}/StateMachine)
 add_subdirectory(${PROJECT_LIB_DIR}/miniPID)
 
+#for the ultrasonic libs
+add_subdirectory(${PROJECT_LIB_DIR}/UltrasonicSensor)
+

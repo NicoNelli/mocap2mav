@@ -8,6 +8,7 @@
 #include "MavState.h"
 #include "lcm/lcm-cpp.hpp"
 #include "lcm_messages/geometry/pose.hpp"
+#include "lcm_messages/geometry/UltrasonicPosition.hpp" //for the ultrasonic message
 #include "lcm_messages/exec/task.hpp"
 #include "lcm_messages/exec/state.hpp"
 #include <iostream>
@@ -15,11 +16,13 @@ class CallbackHandler {
 
 public:
 
-    MavState _vision_pos;
-    MavState _position_sp;
+    MavState _vision_pos; //state of the UAV
+    MavState _position_sp; //platform (motion capture)
     exec::task _task;
 
 	MavState _relative_pos; //filled by apriltag topic.
+
+	MavState _Ultrasonic_pos; //filled by ultrasonic topic.
 
     bool _landed;
     bool _armed;
@@ -101,8 +104,16 @@ public:
 
 	}
 
+	void UltrasonicCallback(const lcm::ReceiveBuffer* rbuf, const std::string& chan, const geometry::UltrasonicPosition* msg){
+	//callback of the vision system.
 
+		_Ultrasonic_pos.setZ((float)msg->Z_Position);
+		
+		_Ultrasonic_pos.setVz((float)msg->Z_Velocity);
 
+		_Ultrasonic_pos.IsValid = msg->isValid; 
+
+	}
 
     void actualTaskCallback(const lcm::ReceiveBuffer* rbuf, const std::string& chan, const exec::task* msg){
 

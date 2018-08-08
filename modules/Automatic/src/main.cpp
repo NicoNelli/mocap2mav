@@ -11,11 +11,11 @@ using namespace common;
 
 int main(int argc, char** argv){
 
-	lcm::LCM handler, handler2, handler3, handler4;
+	lcm::LCM handler, handler2, handler3, handler4, handler5;
 
 	Duration VisionData(1); //timer of 1 second
 
-	if (!handler.good() && !handler2.good() && !handler3.good() && !handler4.good())
+	if (!handler.good() && !handler2.good() && !handler3.good() && !handler4.good() && !handler5.good())
 		return 1;
 
 	CallbackHandler call;
@@ -26,15 +26,17 @@ int main(int argc, char** argv){
 	lcm::Subscription *sub2  = handler2.subscribe("platform/pose", &CallbackHandler::positionSetpointCallback, &call); //absolute pose of the platform
 	lcm::Subscription *sub3  = handler3.subscribe("actual_task", &CallbackHandler::actualTaskCallback, &call);
 	lcm::Subscription *sub4  = handler4.subscribe("apriltag_vision_system", &CallbackHandler::ApriltagCallback, &call); //topic for the vision system.
-
+	lcm::Subscription *sub5  = handler5.subscribe("UltrasonicSensor/platform", &CallbackHandler::UltrasonicCallback, &call); //topic for the ultrasonic sensor.
 
 
 	sub ->setQueueCapacity(1);
 	sub2->setQueueCapacity(1);
 	sub3->setQueueCapacity(1);
 	sub4->setQueueCapacity(1);
+	sub5->setQueueCapacity(1);
 
-	struct pollfd fds[3];
+
+	struct pollfd fds[4];
 
 	fds[0].fd = handler3.getFileno(); // Actual task
 	fds[0].events = POLLIN;
@@ -45,11 +47,14 @@ int main(int argc, char** argv){
 	fds[2].fd = handler4.getFileno(); 
 	fds[2].events = POLLIN;
 
+	fds[3].fd = handler5.getFileno(); 
+	fds[3].events = POLLIN;
 
     bool waiting = true;
 
 	MavState platform;
 	MavState visionSystem;
+	MavState UltrasonicPos; 
 
 
 	while(0==handler.handle()){
@@ -57,7 +62,7 @@ int main(int argc, char** argv){
 		autom.setState(call._vision_pos);
         lander.setState(call._vision_pos);
 
-		int ret = poll(fds,3,0);
+		int ret = poll(fds,4,0);
 
 		if(fds[0].revents & POLLIN){
 
@@ -80,9 +85,10 @@ int main(int argc, char** argv){
 			//std::cout<<"z:"<<platform.getZ()<<std::endl;
 
 		}
-
+	
 		if(fds[2].revents & POLLIN){
-
+			//here there are vision data.	
+		
 			handler4.handle();
 			
 			VisionData.updateTimer(); //it takes the actual time
@@ -108,6 +114,20 @@ int main(int argc, char** argv){
 		
 		}
 
+		if(fds[3].revents & POLLIN){
+			//ultrasonic sensor
+			handler5.handle();
+			
+			UltrasonicPos = call._Ultrasonic_pos; //copy the information from the callback to the main function.
+			autom.setUltrasonicInfo(UltrasonicPos);// pass them to the automatic function.
+
+			//DEBUG:
+			std::cout<<"Z:"<<UltrasonicPos.getZ()<<std::endl;
+			std::cout<<"Vz:"<<UltrasonicPos.getVz()<<std::endl;
+			std::cout<<"valid? "<<UltrasonicPos.IsValid<<std::endl;
+	
+
+		}
 
 
         if(!waiting) {

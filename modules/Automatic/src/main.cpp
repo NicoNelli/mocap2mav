@@ -13,7 +13,11 @@ int main(int argc, char** argv){
 
 	lcm::LCM handler, handler2, handler3, handler4, handler5;
 
+
+	//the following timer are used to check if both the vision and Ultrasonic sensor are not available for some reason.
 	Duration VisionData(1); //timer of 1 second
+	Duration UltrasonicData(1); //timer of 1 second
+
 
 	if (!handler.good() && !handler2.good() && !handler3.good() && !handler4.good() && !handler5.good())
 		return 1;
@@ -114,20 +118,37 @@ int main(int argc, char** argv){
 		
 		}
 
+
 		if(fds[3].revents & POLLIN){
 			//ultrasonic sensor
 			handler5.handle();
 			
+			UltrasonicData.updateTimer();
+			UltrasonicData._start = UltrasonicData._actualTime;
+
 			UltrasonicPos = call._Ultrasonic_pos; //copy the information from the callback to the main function.
+			UltrasonicPos.UltrasonicDataUpdated = true;			
 			autom.setUltrasonicInfo(UltrasonicPos);// pass them to the automatic function.
 
 			//DEBUG:
-			std::cout<<"Z:"<<UltrasonicPos.getZ()<<std::endl;
-			std::cout<<"Vz:"<<UltrasonicPos.getVz()<<std::endl;
-			std::cout<<"valid? "<<UltrasonicPos.IsValid<<std::endl;
+			//std::cout<<"Z:"<<UltrasonicPos.getZ()<<std::endl;
+			//std::cout<<"Vz:"<<UltrasonicPos.getVz()<<std::endl;
+			//std::cout<<"valid? "<<UltrasonicPos.IsValid<<std::endl;
 	
 
 		}
+		else{
+			
+			if( UltrasonicData.isExpired() ) {
+				UltrasonicPos.UltrasonicDataUpdated = false;			
+		        autom.setUltrasonicInfo(UltrasonicPos);	
+			
+			}
+		
+
+		}
+			
+
 
 
         if(!waiting) {

@@ -23,7 +23,7 @@ public:
     int      *_NComp;
     MavState *_state;
     MavState *_setPoint;
-
+	MavState *_VisionPose;
     //New Signals
     bool *_holding;
     bool *_lost;
@@ -63,7 +63,7 @@ public:
          _NComp        = *(_contextL->_NComp);
          _state        = *(_contextL->_state);
          _setPoint     = *(_contextL->_setPoint);
-
+		 _VisionPose   = *(_contextL->_VisionPose);
         //New Signals
         _holding       = *(_contextL->_holding);
         _centered      = *(_contextL->_centered);
@@ -86,6 +86,7 @@ protected:
     int      _NComp;
     MavState _state;
     MavState _setPoint;
+	MavState _VisionPose;
     LandMachine* _contextL;
 
     //New Signals

@@ -28,9 +28,9 @@ void HoldState::handle(){
 	//before compensation, this value should be above the minimum platform value.
 	//descending phase is valid if the horizontal error is under a given treshold and z distance above zMin.
     
-	bool InitValid = _lost && !(_setPoint.getZ()  < params_automatic::zMax - 0.1);	
-	std::cout<<"InitValid: "<<InitValid<<std::endl;
-	//if the platform is lost and vision data are not available coming back to the initState
+	bool InitValid = !_VisionPose.VisionDataUpdated && !(_setPoint.getZ()  < params_automatic::zMax - 0.1);	
+	//std::cout<<"InitValid: "<<InitValid<<std::endl;
+	//if the  vision data are not available and the drone reaches the max height coming back to the initState
 
 	bool asceValid = _lost    && (_setPoint.getZ()   < params_automatic::zMax - 0.1);
 	//coming up if the platform is lost and the z distance is under zMax
@@ -38,6 +38,7 @@ void HoldState::handle(){
 	bool compValid = _holding && (fabs(_state.getZ() - params_automatic::zMin) < 0.2) && _centered;
 	//comp is a middle state between land state and hold state.
 	//if the UAV is holding ad is centered on the platform and is close to the platform(20 cm), will be accomplish.
+
 
 
     if(descValid){
@@ -56,6 +57,7 @@ void HoldState::handle(){
         printStateTransition();
         return;
     }
+
 
     if(InitValid){
 	this->_contextL->setStatePtr(_nextInitState); //set the next state(InitState)

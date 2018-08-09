@@ -6,6 +6,8 @@
 #define MOCAP2MAV_PARAMETERS_H
 
 namespace params_automatic {
+	//offset between baricenter of the drone and the ultrasonic sensor
+	static const double OffsetUltraSensor = 0.1;
 
     //Number of consecutive frames in which tracking is considered valid
     static const int    NFramesHold     = 120;

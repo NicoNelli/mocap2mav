@@ -79,7 +79,12 @@ public:
         this->setType(m.getType());
 
 	this->VisionDataUpdated = m.VisionDataUpdated;
-    }
+    	
+	this->IsValid = m.IsValid;
+    
+	this->UltrasonicDataUpdated = m.UltrasonicDataUpdated; 	
+	
+	}
     long int timestamp;
 
 	//to check if VisionData are updated
@@ -87,6 +92,9 @@ public:
 
 	//to check if the ultrasonic information are valid.
 	bool IsValid;
+
+	//to check if the data from the ultrasonic sensor are udated.
+	bool UltrasonicDataUpdated;			
 private:
 
     double _x;

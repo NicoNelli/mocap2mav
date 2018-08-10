@@ -24,6 +24,7 @@ public:
     MavState *_state;
     MavState *_setPoint;
 	MavState *_VisionPose;
+	MavState *_UltraInfo;
     //New Signals
     bool *_holding;
     bool *_lost;
@@ -64,7 +65,9 @@ public:
          _state        = *(_contextL->_state);
          _setPoint     = *(_contextL->_setPoint);
 		 _VisionPose   = *(_contextL->_VisionPose);
-        //New Signals
+		 _UltraInfo    = *(_contextL->_UltraInfo);		
+        
+		//New Signals
         _holding       = *(_contextL->_holding);
         _centered      = *(_contextL->_centered);
         _lost          = *(_contextL->_lost);
@@ -87,6 +90,7 @@ protected:
     MavState _state;
     MavState _setPoint;
 	MavState _VisionPose;
+	MavState _UltraInfo;
     LandMachine* _contextL;
 
     //New Signals

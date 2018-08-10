@@ -95,6 +95,12 @@ void CompState::handle() {
         this->_contextL->setStatePtr(_nextState); //set the next state(AsceState)
         printStateTransition();
     }
+	
+	if ( !_UltraInfo.UltrasonicDataUpdated ){ //if the ultrasonic sensor data are not available..
+        this->_contextL->setStatePtr(_nextState); //set the next state(AsceState)
+        printStateTransition();
+    }
+
 
    std::cout << "VERRRRRRRR: " << _verticalErr << std::endl;
 

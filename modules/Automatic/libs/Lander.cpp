@@ -39,9 +39,6 @@ MavState Lander::getCommand() {
 
 void Lander::initStateMachine() {
 
-	switchSensor = false; //initially only camera sensor is used for feedback position.
-
-
     //Link signals
     _machine._horizontaErr =  &_horizontaErr;
     _machine._verticalErr  =  &_verticalErr;
@@ -53,7 +50,8 @@ void Lander::initStateMachine() {
     _machine._NComp        =  &_NComp;
     _machine._state        =  &_state;
     _machine._setPoint     =  &_setPoint;
-
+    _machine._VisionPose   =  &_VisionPose;
+	_machine._UltraInfo    = &_UltraInfo;
     //New signals
     _machine._holding      =  &_holding;
     _machine._centered     =  &_centered;
@@ -113,28 +111,19 @@ void Lander::updateSignals() {
 	double dy;
 	double dz;
 
-	switchSensor = abs( _VisionPose.getZ() ) > 0.1; //with 0.1 always vision:) 	
+	switchSensor = (fabs( _VisionPose.getZ() ) > 0.5); //with 0.1 always vision:) 	
 
 	//above half meters use vision system for altitude value
 	//otherwise, ultrasonic sensors.
-/*
-	if(!switchSensor)
-		dz = _platformState.getZ() - _state.getZ() + PLATFORM_OFFSET;
-	
-	else
+
+	if( switchSensor )
 		dz = _VisionPose.getZ();
-	std::cout<<"switch:"<<switchSensor<<std::endl;
-*/
-	dz = _VisionPose.getZ();
+	else
+		dz = -(_UltraInfo.getZ()+params_automatic::OffsetUltraSensor);
 	
 	dx = _VisionPose.getX();
 
 	dy = _VisionPose.getY();
-
-	std::cout<<"Vision_Z:"<<_VisionPose.getZ()<<std::endl;
-
-	std::cout<<"Ultrasonic_Z:"<<-(_UltraInfo.getZ()+0.1)<<std::endl;
-
 
     _err[0] = dx;
     _err[1] = dy;
@@ -161,24 +150,6 @@ void Lander::updateSignals() {
 
     	_centered = _horizontaErr < _tauHold * 0.5 && _VisionPose.VisionDataUpdated;
 
-
-	/*
-	if( switchSensor ) {
-		_holding  = (_NHold > params_automatic::NFramesHold && _VisionPose.VisionDataUpdated ); 
-
-    	_lost     = (_NLost > params_automatic::NFramesLost || !_VisionPose.VisionDataUpdated ); 
-
-    	_centered = _horizontaErr < _tauHold * 0.5 && _VisionPose.VisionDataUpdated;
-
-	}
-	else{
-		_holding  = (_NHold > params_automatic::NFramesHold); //Number of consecutive frames in which tracking is considered valid
-
-	    _lost     = (_NLost > params_automatic::NFramesLost); //Numbe of consecutive frames in with tracking is not considered valid
-
-   		_centered = _horizontaErr < _tauHold * 0.5;	
-	}
-*/
 
     if(_actualState == AbstractLandState::states::R2LA || _actualState == AbstractLandState::states::COMP || _actualState == AbstractLandState::states::LAND){
 		//R2LA state is between hold and comp state
@@ -211,13 +182,19 @@ void Lander::updateSignals() {
     std::cout << "STATE: " << _actualState<< std::endl;
     std::cout << "HERRO: " << _horizontaErr<< std::endl;
     std::cout << "HERRV: " << _verticalErr<< std::endl;
+
+	std::cout<<"Vision_Z:"<<_VisionPose.getZ()<<std::endl;	
+	std::cout<<"Ultrasonic_Z:"<<-(_UltraInfo.getZ()+params_automatic::OffsetUltraSensor)<<std::endl;	
+	std::cout<<"Valid? "<<_UltraInfo.IsValid<<std::endl;		
+
 	std::cout << "switchSensor: " << switchSensor << std::endl;
-	std::cout << "VisionData" << _VisionPose.VisionDataUpdated << std::endl;
+	std::cout << "VisionDataAvailable: " << _VisionPose.VisionDataUpdated << std::endl;
+	std::cout << "UltrasonicdataAvailable: " << _UltraInfo.UltrasonicDataUpdated << std::endl;			
     std::cout << "NHOLD: " << _NHold<< std::endl;
     std::cout << "NLOST: " << _NLost<< std::endl;
     std::cout << "NCOMP: " << _NComp<< std::endl;
-    std::cout << "INTEX: " << _err_int[0] << std::endl;
-    std::cout << "INTEY: " << _err_int[1] << std::endl;
+    //std::cout << "INTEX: " << _err_int[0] << std::endl;
+    //std::cout << "INTEY: " << _err_int[1] << std::endl;
     std::cout << "**********************************" << std::endl;
 #endif
 
@@ -434,19 +411,14 @@ void Lander::desc() {
 void Lander::comp() {
 
 	double dz;
-	dz = _VisionPose.getZ() + PLATFORM_OFFSET;
-
-	/*	
-	to use for diversificate visiondata and motion capture.	
-	if(switchSensor)
-		dz = _VisionPose.getZ() + PLATFORM_OFFSET;
-
-	else{
-		dz = - _state.getZ() + _platformState.getZ() + PLATFORM_OFFSET;
-		std::cout<<"ULTRASENSOR"<<std::endl;			
 	
+	if( switchSensor )
+    	dz = _VisionPose.getZ() + PLATFORM_OFFSET;
+	else{
+		
+		dz = -(_UltraInfo.getZ()+params_automatic::OffsetUltraSensor);
+		std::cout<<"ULTRASENSOR"<<std::endl;	
 	}
-*/
 
     //Calculate desired vertical velocity in order to compensate oscillations
     double desc = common::interpolate(fabs(dz), DRATE_MAX, DRATE_MIN, TMAX, TMIN);

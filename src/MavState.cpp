@@ -1,6 +1,4 @@
-//
-// Created by andreanisti on 15/11/16.
-//
+
 
 #include "common/MavState.h"
 
@@ -21,12 +19,13 @@ void MavState::setX(double x) {
 }
 
 void MavState::setY(double y) {
-    _y = y;
+    _y = y; 
 }
 
 void MavState::setZ(double z) {
     _z = z;
 }
+
 
 double MavState::getX() const{
     return _x;

@@ -1,14 +1,23 @@
-//
-// Created by andreanistico on 13/06/17.
-//
 
 #ifndef MOCAP2MAV_MOVE_HPP
 #define MOCAP2MAV_MOVE_HPP
 
 #include "Command.hpp"
+
+/** @ingroup Automatic
+ * @brief Derived class of the Command class
+ * @details Such class implements the Move Action
+ * Basically, it allows the drone to reach a desired position
+ */
+
 class Move : public Command{
 
 private:
+
+    /**
+     * @brief Such method is called inside execute function
+     * @details It sends the command with the desired position
+     */
 
     void move()
     {
@@ -17,6 +26,15 @@ private:
         *(this->_comm) = calculatePositionInterm(alpha,*_actualTask,*_state);
     }
 
+
+    /**
+     * @brief Such method is called by move method
+     * @details It implements middle position setpoint
+     * @param alpha Carrot value
+     * @param target Target position of the drone
+     * @param state Actual position of the drone
+     * @return command to give to the motor
+     */
     MavState calculatePositionInterm(const double alpha, const exec::task target, const MavState state)
     {
 
@@ -56,6 +74,10 @@ private:
 
 public:
     Move(MavState *_state, MavState *_comm,exec::task *_actualTask) : Command(_state, _comm, _actualTask) {}
+
+    /**
+     * @brief Method inherited from the base class
+     */
 
     void execute() override {
         move();

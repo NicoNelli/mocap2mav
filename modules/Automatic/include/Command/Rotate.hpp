@@ -7,6 +7,13 @@
 
 #include "Command.hpp"
 #include "common/conversions.h"
+
+/** @ingroup Automatic
+ * @brief Derived class of the Command class.
+ * @details Such class implements the Rotate Action.
+ * Such function implements two types of Landing:
+ */
+
 class Rotate : protected Command{
 
 private:
@@ -79,6 +86,10 @@ private:
 
 public:
     Rotate(MavState *_state, MavState *_comm,exec::task *_actualTask) : Command(_state, _comm, _actualTask) {}
+
+    /**
+     * @brief Method inherited from the base class
+     */
 
     void execute() override {
         rotate();

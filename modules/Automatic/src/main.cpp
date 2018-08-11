@@ -9,6 +9,13 @@
 
 using namespace common;
 
+/** \addtogroup Automatic
+ * @brief main
+ * @param argc
+ * @param argv
+ * @return
+ */
+
 int main(int argc, char** argv){
 
 	lcm::LCM handler, handler2, handler3, handler4, handler5;

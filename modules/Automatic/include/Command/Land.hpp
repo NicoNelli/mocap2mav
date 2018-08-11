@@ -9,22 +9,79 @@
 #include "common/conversions.h"
 #include "Lander/Lander.h"
 
+/** @ingroup Automatic
+ * @brief Derived class of the Command class.
+ * @details Such class implements the Land Action.
+ * Such function implements two types of Landing:
+ * Basic landing procedure (the drone lands from the actual position)
+ * 
+ * Landing procedure on a moving platform (using vision system and ultrasonic sensor ).
+ */
+
 class Land : public Command{
 
 private:
 
+    /**
+     * Actual X position of the drone
+     */
+
     double _xin;
+
+    /**
+     * Actual Y position of the drone
+     */
+
     double _yin;
+    
+    /**
+     * Actual yaw angle of the drone
+     */
+
     double _yawin;
+    
+    /**
+     *  To diversificate from blind or improved landing
+     */
+
     int    _plat;
+    
+    /**
+     *  Pose of the platform respect to the absolute reference frame
+     */
+    
     MavState* _platformPose;
-	MavState* _VisionPose;
-	MavState* _UltrasonicInfo;
+	
+    /**
+     *  Relative pose of the platform respect to the drone 
+     */
+
+    MavState* _VisionPose;
+	
+    /**
+     *  Partial state of the drone using the ultrasonic sensor.
+     */
+
+    MavState* _UltrasonicInfo;
+    
+    /**
+     * @brief Lander object 
+     */
+
     Lander _lander;
+
+    /**
+     * @brief Such method calculates the descend rate profile (linear) through y = mx + q
+     * @param dz vertical distance between robot and the platform
+     * @param drate_max Maximum rate
+     * @param drate_min Minimum rate
+     * @param tmax Maximum time
+     * @param tmin Minimum time
+     * @return setpoint position on Z axis
+     */
 
     double calculateDescendRate(double dz,double drate_max,double drate_min, double tmax, double tmin){
 
-        //Calculate the descend rate profile (linear) through y = mx + q
         //where x is vertical distance between robot and platform
         if(dz > tmax)      return drate_max;
         else if(dz < tmin) return drate_min;
@@ -36,6 +93,15 @@ private:
 
         }
     }
+
+    /**
+     * @brief The core method for simple landing action
+     * @details Such method allows to land from the current X and Y position.
+     * 
+     * @param x_target Actual X position of the drone
+     * @param y_target Actual Y position of the drone
+     * @param h Height from which the land should start
+     */
 
     void simpleLanding(float x_target, float y_target, float h) {
 
@@ -71,6 +137,12 @@ private:
 
     }
 
+    /**
+     * @brief Such method is called by the execute method
+     * @details Based on the value of _plat, it can distinguish
+     * the two landing procedures 
+     */
+
     void land(){
 
         //Save initial state if we have a new task
@@ -104,6 +176,10 @@ private:
 
 public:
     Land(MavState *_state, MavState *_comm,exec::task *_actualTask, MavState* _platform, MavState* _Vision, MavState* _Ultrasonic) : Command(_state, _comm, _actualTask) , _plat(_plat), _platformPose(_platform), _VisionPose(_Vision),_UltrasonicInfo(_Ultrasonic){}
+
+    /**
+     * @brief Method inherited from the base class
+     */
 
     void execute() override {
         land();

@@ -1,6 +1,4 @@
-//
-// Created by andreanisti on 15/11/16.
-//
+
 
 #ifndef MOCAP2MAV_MAVSTATE_H
 #define MOCAP2MAV_MAVSTATE_H
@@ -9,6 +7,11 @@
 #include <cstdint>
 #include <math.h>
 #include <Eigen/Eigen>
+
+
+/** @ingroup Automatic
+ * @brief It is a class which allows to set: position, velocity, orientation and bool variable to control drones.
+ */
 
 class MavState {
 
@@ -19,52 +22,214 @@ public:
 
     MavState();
 
+    /**
+     *  It allows to diversificate between a velocity command or a position command.
+     */
+
     enum type{
 
         POSITION,
         VELOCITY
 
     };
+	
+	/**
+	 * @brief Such method sets the position
+	 * 
+	 * @param x X position 
+	 * @param y Y position 
+	 * @param z Z position 
+	 */
 
-    void setPosition(double x, double y, double z);
-    void setX(double x);
+	void setPosition(double x, double y, double z);
+    
+	/**
+	 * @brief Such method sets the X position
+	 * 
+	 * 
+	 * @param x X position 
+	 */
+
+	void setX(double x);
+    
+	/**
+	 * @brief Such method sets the Y position
+	 * 
+	 * 
+	 * @param y Y position 
+	 */
+
     void setY(double y);
+    
+    /**
+     * @brief Such method sets the Z position
+     * 
+     * 
+     * @param z Z position 
+     */
+
     void setZ(double z);
+    
+    /**
+     * @brief Such method returns the X position 
+     * 
+     * @return X position
+     */
+
     double getX() const;
+    
+    /**
+     * @brief Such method returns the Y position 
+     * 
+     * @return Y position
+     */
+
     double getY() const;
+
+    /**
+     * @brief Such method returns the Z position 
+     * 
+     * @return Z position
+     */
+
     double getZ() const;
 
+    /**
+     * @brief Such method allows to set the velocity vector
+     * 
+     * @param vx Velocity on x axis
+     * @param vy Velocity on y axis
+     * @param vz Velocity on z axis
+     */
+
     void setV(double vx, double vy, double vz);
+    
+    /**
+     * @brief Such method allows to set the X velocity 
+     * 
+     * @param v Velocity on X axis
+     */
+
     void setVx(double v);
+    
+    /**
+     * @brief Such method allows to set the Y velocity 
+     * 
+     * @param v Velocity on Y axis
+     */
+
     void setVy(double v);
+
+    /**
+     * @brief Such method allows to set the Z velocity
+     * 
+     * @param v Velocity on Z axis
+     */
+
     void setVz(double v);
+    
+    /**
+     * @brief Such method returns the X velocity vector
+     * @return Velocity on X axis
+     */
+
     double getVx() const;
+    
+    /**
+     * @brief Such method returns the Y velocity vector
+     * @return Velocity on Y axis
+     */
+
     double getVy() const;
+    
+    /**
+     * @brief Such method returns the Z velocity vector
+     * @return Velocity on Z axis
+     */
+
     double getVz() const;
 
+    /**
+     * @brief Such method allows to set yaw angle
+     * @param yaw yaw angle of the drone.
+     */
+
     void setYaw(double yaw);
+
+    /**
+     * @brief Such method returns the yaw angle 
+     * @return The yaw angle
+     */
+
     double getYaw()const;
+
+    /**
+     * @brief Such method returns the yaw from the quaternion previously set
+     * @return The yaw angle
+     */
+
     double getYawFromQuat() const;
 
-
-    //Use eigen
+    /**
+     * @brief Such method sets the orientation using the Eigen quaternion
+     * @param quat Eigen quaternion
+     */
+   
     void setOrientation(Eigen::Quaterniond quat);
+    
+    /**
+     * @brief Such method sets the quaternion using four parameters 
+     * @param qw Scalar part of the quaternion
+     * @param qx Quaternion part on X axis
+     * @param qy Quaternion part on Y axis
+     * @param qz Quaternion part on Z axis
+     */
+
     void setOrientation(double qw, double qx, double qy, double qz);
+
+    /**
+     * @brief Such method returns the position vector  
+     * @param x Position on X axis
+     * @param y Position on Y axis
+     * @param z Position on Z axis
+     */
 
     void getPosition(double& x, double& y, double& z) const;
 
-    //get quaternion
+    /**
+     * @brief Such method returns Eigen quaternion
+     * @return Eigen quaternion
+     */
+
     Eigen::Quaterniond getOrientation() const;
 
-    //convert from eigen
+    /**
+     * @brief Such method allows to set roll, pitch and yaw from Eigen quaternion
+     * @param roll Angle on X axis
+     * @param pitch Angle on Y axis
+     * @param yaw Angle on Z axis
+     */
+    
     void getOrientationRPY(double& roll, double& pitch, double& yaw) const;
+
+    /**
+     * @brief Such method sets the type of command: velocity or position command.
+     * @param t Type of command
+     */
 
     void setType(type t);
 
+    /**
+     * @brief Such method returns the type of command
+     * @return Type of command
+     */
+
     type getType() const;
 
-
-    // OPERATORS
+    /**
+     * @brief Equality operator 
+     * @param m MavState object
+     */
 
     void operator=(const MavState &m){
 
@@ -85,16 +250,35 @@ public:
 	this->UltrasonicDataUpdated = m.UltrasonicDataUpdated; 	
 	
 	}
-    long int timestamp;
 
-	//to check if VisionData are updated
+	/**
+	 *Actual time
+	 */
+
+    long int timestamp;
+	
+    /**
+     *Bool variable to check if vision data are updated.
+     */
+
 	bool VisionDataUpdated;
 
-	//to check if the ultrasonic information are valid.
+	/**
+	 *Bool variable to check if the information are valid. 
+	 *In this case, it is used for ultrasonic sensor.
+	 */
+
 	bool IsValid;
 
-	//to check if the data from the ultrasonic sensor are udated.
+	/**
+	 *Bool variable to check if the ultrasonic data are updated.
+	 */
+
 	bool UltrasonicDataUpdated;			
+
+/**
+ * State of the drone: position, velocity, orientation.
+ */
 private:
 
     double _x;

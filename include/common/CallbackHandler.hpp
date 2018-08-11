@@ -1,6 +1,3 @@
-//
-// Created by andrea on 29/04/16.
-//
 
 #ifndef MOCAP2MAV_CALLBACKHANDLER_HPP
 #define MOCAP2MAV_CALLBACKHANDLER_HPP
@@ -12,23 +9,71 @@
 #include "lcm_messages/exec/task.hpp"
 #include "lcm_messages/exec/state.hpp"
 #include <iostream>
+
+/** @ingroup Automatic
+ * 
+ * @brief Class used to set the actual state of the drone from different sources: GPS, camera, ultrasonic sensor..
+ * @details Such class uses callbacks of lcm topics.
+ * 
+ */
 class CallbackHandler {
 
 public:
 
-    MavState _vision_pos; //state of the UAV
-    MavState _position_sp; //platform (motion capture)
+    /**
+     *  State of the drone obtained by motion Capture
+     */
+    MavState _vision_pos;
+    
+    /**
+     *  State of the platform obtained by motion Capture
+     */
+
+    MavState _position_sp;    
+
     exec::task _task;
 
-	MavState _relative_pos; //filled by apriltag topic.
+    /**
+     *  State of the drone respect to the platform obtained by vision system
+     */
 
-	MavState _Ultrasonic_pos; //filled by ultrasonic topic.
+	MavState _relative_pos; 
+
+    /**
+     *  State of the drone obtained by ultrasonic sensor
+     */
+
+	MavState _Ultrasonic_pos; 
+
+    /**
+     *  Bool variable to check if the drone is landed
+     */
 
     bool _landed;
+
+    /**
+     *  Bool variable to check if the drone is armed
+     */
+
     bool _armed;
+
+    /**
+     *  Set to true after that the callback of the motion capture or GPS is called (absolute frame)
+     */
+
     bool _estimate_ready;
+
+    /**
+     *  Bool variable to check if there is a position setPoinf
+     */
+
     bool _position_sp_ready;
 
+
+    /**
+     * @brief Constructor of the class
+     * @details It sets initial values of the class
+     */
     CallbackHandler(){
 
         _position_sp.setPosition(0,0,0);
@@ -47,7 +92,12 @@ public:
         _landed = true;
 
     }
-//TODO: use lcm2mavstate
+
+    /**
+     * @brief Callback used to take the messages of the aboslute state od the drone(motion capture or GPS)
+     * @details It sets the position, velocity, orientation and the type of command
+     */
+
     void visionEstimateCallback(const lcm::ReceiveBuffer* rbuf, const std::string& chan, const geometry::pose* msg){
 
         _vision_pos.setPosition((double)msg->position[0],(double)msg->position[1],(double)msg->position[2]);
@@ -71,6 +121,11 @@ public:
 
     }
 
+    /**
+     * @brief Callback used to take the messages of the absolute state of the platform
+     * @details It sets the position, velocity, orientation and the type of command
+     */
+
     void positionSetpointCallback(const lcm::ReceiveBuffer* rbuf, const std::string& chan, const geometry::pose* msg){
 
         _position_sp.setPosition((float)msg->position[0],(float)msg->position[1],(float)msg->position[2]);
@@ -93,6 +148,11 @@ public:
 
     }
 
+    /**
+     * @brief Callback used to take the messages coming from the vision system
+     * @details It sets the position, velocity, orientation 
+     */
+
 	void ApriltagCallback(const lcm::ReceiveBuffer* rbuf, const std::string& chan, const geometry::pose* msg){
 	//callback of the vision system.
 
@@ -104,6 +164,11 @@ public:
 
 	}
 
+    /**
+     * @brief Callback used to take the messages coming from the ultrasonic sensor
+     * @details It sets the Z position, the estimated Z velocity and set the validity of the message
+     */
+
 	void UltrasonicCallback(const lcm::ReceiveBuffer* rbuf, const std::string& chan, const geometry::UltrasonicPosition* msg){
 	//callback of the vision system.
 
@@ -114,6 +179,11 @@ public:
 		_Ultrasonic_pos.IsValid = msg->isValid; 
 
 	}
+
+    /**
+     * @brief Callback used to take the actual task coming from the executioner module
+     * @details It sets the type of action, its param and the core of the message
+     */
 
     void actualTaskCallback(const lcm::ReceiveBuffer* rbuf, const std::string& chan, const exec::task* msg){
 
@@ -134,6 +204,11 @@ public:
 
     }
 
+    /**
+     * @brief Callback used to set bool varibles
+     * @details It sets if the drone is landed and if the drone is armed
+     */
+
     void stateCallback(const lcm::ReceiveBuffer* rbuf, const std::string& chan, const exec::state* msg){
 
         if (msg->landed == (uint8_t)1) _landed = true;
@@ -143,6 +218,12 @@ public:
         else _armed = false;
 
     }
+
+    /**
+     * @brief Function to convert lcm message to MavState class
+     * @param lcmPose Object of pose class
+     * @return Filled MavState object
+     */
 
     MavState lcmPose2MavState(const geometry::pose lcmPose){
 
@@ -168,6 +249,12 @@ public:
         return temp;
 
     }
+
+    /**
+     * @brief Function to convert MavState class to lcm message
+     * @param mavPose Object of MavState class
+     * @return Filled lcm message
+     */
 
     geometry::pose mavState2LcmPose(MavState mavPose){
 

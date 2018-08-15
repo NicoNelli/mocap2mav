@@ -157,14 +157,22 @@ private:
         if (_plat == 0){
             simpleLanding((float)_xin,(float)_yin,0);
         } else {
-            _lander.setState(*_state); //set the state of the UAV
 
-            _lander.setPlatformState(*_platformPose); //set the platformPose
+            //set the state of the UAV
 
-	    	_lander.setVisionPose(*_VisionPose); //passing the information coming from the vision system to the LanderStateMachine.
+            _lander.setState(*_state); 
 
-			_lander.setUltrasonicInfo(*_UltrasonicInfo); //passing the information coming from the ultrasonic sensor to the LanderStateMachine.
+            //set the platform pose
 
+            _lander.setPlatformState(*_platformPose); 
+
+            //passing the information coming from the vision system to the LanderStateMachine.
+
+	    	_lander.setVisionPose(*_VisionPose); 
+
+            //passing the information coming from the ultrasonic sensor to the LanderStateMachine.
+
+			_lander.setUltrasonicInfo(*_UltrasonicInfo); 
 			//here, we can divide the function run() to obtain the actual state of the machine
 
             _lander.run();

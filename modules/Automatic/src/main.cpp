@@ -8,21 +8,19 @@
 #include "common/MavState.h"
 
 using namespace common;
-
 /** \addtogroup Automatic
- * @brief main
- * @param argc
- * @param argv
- * @return
+ * @brief Main function allowing the automatic
+ * implementation of actions for drones 
  */
 
 int main(int argc, char** argv){
 
 	lcm::LCM handler, handler2, handler3, handler4, handler5;
 
-
 	//the following timer are used to check if both the vision and Ultrasonic sensor are not available for some reason.
+	
 	Duration VisionData(1); //timer of 1 second
+	
 	Duration UltrasonicData(1); //timer of 1 second
 
 
@@ -30,8 +28,12 @@ int main(int argc, char** argv){
 		return 1;
 
 	CallbackHandler call;
+	
 	Automatic autom;
+	
 	Lander lander;
+
+	//Subscription to different topics: state of the drone, vision data, ultrasonic sensor, platform pose, current action
 
 	lcm::Subscription *sub   = handler.subscribe("vision_position_estimate", &CallbackHandler::visionEstimateCallback, &call);//pose of the UAV
 	lcm::Subscription *sub2  = handler2.subscribe("platform/pose", &CallbackHandler::positionSetpointCallback, &call); //absolute pose of the platform
@@ -49,10 +51,14 @@ int main(int argc, char** argv){
 
 	struct pollfd fds[4];
 
-	fds[0].fd = handler3.getFileno(); // Actual task
+	//the getFileno() function returns a file descriptor that can
+	//be used for asynchronous notification of incoming messages
+	//POLLIN means: data may be read without blocking
+
+	fds[0].fd = handler3.getFileno(); 
 	fds[0].events = POLLIN;
 
-	fds[1].fd = handler2.getFileno(); // Square pose
+	fds[1].fd = handler2.getFileno(); 
 	fds[1].events = POLLIN;
 	
 	fds[2].fd = handler4.getFileno(); 
@@ -62,6 +68,8 @@ int main(int argc, char** argv){
 	fds[3].events = POLLIN;
 
     bool waiting = true;
+
+    //filled here the information of the platform, vision data and ultrasonic sensor
 
 	MavState platform;
 	MavState visionSystem;
@@ -73,13 +81,15 @@ int main(int argc, char** argv){
 		autom.setState(call._vision_pos);
         lander.setState(call._vision_pos);
 
+        //It waits for one of a set of file descriptors to become ready to perform I/O
 		int ret = poll(fds,4,0);
 
+		//It checks with bitwise NAD if the two events are the same
 		if(fds[0].revents & POLLIN){
 
 			handler3.handle();
-			autom.setTask(call._task);
 
+			autom.setTask(call._task);
 			std::cout<<  "New task arrived with action: " << printAction(autom._actualTask.action) << std::endl;
 
             waiting = false;
@@ -87,8 +97,10 @@ int main(int argc, char** argv){
 		}
 
 		if(fds[1].revents & POLLIN){
+			//messages of the platform arrived
 
 			handler2.handle();
+			
 			platform = call._position_sp;
             autom.setPlatformState(platform);
 			//std::cout<<"x:"<<platform.getX()<<std::endl;
@@ -98,15 +110,13 @@ int main(int argc, char** argv){
 		}
 	
 		if(fds[2].revents & POLLIN){
-			//here there are vision data.	
-		
-			handler4.handle();
-			
-			VisionData.updateTimer(); //it takes the actual time
-			VisionData._start = VisionData._actualTime;
 			//every time I entered here there will be data from vision system
 			//it is necessary to reset the duration of the timer (the dt will be zero)
-
+			
+			handler4.handle();
+			
+			VisionData.updateTimer(); //it sets the actual time
+			VisionData._start = VisionData._actualTime; //reset timer
 
 			visionSystem = call._relative_pos;
 			visionSystem.VisionDataUpdated = true;
@@ -119,6 +129,8 @@ int main(int argc, char** argv){
 		else {
 			
 			if( VisionData.isExpired() ) {
+				//the timer is expired, no vision data are available since 1 sec
+
 				visionSystem.VisionDataUpdated = false;
 				autom.setVisionFeedback(visionSystem);
 			}
@@ -127,11 +139,13 @@ int main(int argc, char** argv){
 
 
 		if(fds[3].revents & POLLIN){
-			//ultrasonic sensor
+			//every time I entered here there will be data from ultrasonic sensor
+			//it is necessary to reset the duration of the timer (the dt will be zero)
+			
 			handler5.handle();
 			
 			UltrasonicData.updateTimer();
-			UltrasonicData._start = UltrasonicData._actualTime;
+			UltrasonicData._start = UltrasonicData._actualTime; //reset timer
 
 			UltrasonicPos = call._Ultrasonic_pos; //copy the information from the callback to the main function.
 			UltrasonicPos.UltrasonicDataUpdated = true;			
@@ -147,6 +161,8 @@ int main(int argc, char** argv){
 		else{
 			
 			if( UltrasonicData.isExpired() ) {
+				//the timer is expired, no ultrasonic sensor data are available since 1 sec
+
 				UltrasonicPos.UltrasonicDataUpdated = false;			
 		        autom.setUltrasonicInfo(UltrasonicPos);	
 			

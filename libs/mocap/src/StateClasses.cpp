@@ -27,7 +27,7 @@ void HoldState::handle(){
     //before compensation,this value should be above the minimum platform value.
     //descending phase is valid if the horizontal error is under a given threshold and z distance above zMin.
 
-    bool InitValid = _lost && !(_setPoint.getZ()   < params_automatic::zMax - 0.1);
+    bool InitValid = !_VisionPose.VisionDataUpdated && !(_setPoint.getZ()   < params_automatic::zMax - 0.1);
     //if the platform is lost and vision data are not available coming back to the initState.
 
 
@@ -88,6 +88,7 @@ void CompState::handle() {
         this->_contextL->setStatePtr(_nextState); //set next state (AsceState)
         printStateTransition();
     }
+
 
    std::cout << "VERRRRRRRR: " << _verticalErr << std::endl;
 

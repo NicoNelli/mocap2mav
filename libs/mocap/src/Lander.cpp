@@ -64,7 +64,7 @@ void Lander::initStateMachine() {
     _machine._NComp        =  &_NComp;
     _machine._state        =  &_state;
     _machine._setPoint     =  &_setPoint;
-
+    _machine._VisionPose   = &_VisionPose;
     //New signals
     _machine._holding      =  &_holding;
     _machine._centered     =  &_centered;
@@ -120,15 +120,15 @@ void Lander::updateSignals() {
     double dy;
     double dz;
 
-    switchSensor = abs( _VisionPose.getZ() ) > 0.5;
+    switchSensor = (fabs( _VisionPose.getZ() ) > 0.5);
     //above half meters use vision system for altitude value 
     //otherwise, ultrasonic sensors.
 
-    if(!switchSensor)
-        dz = _platformState.getZ() - _state.getZ() + PLATFORM_OFFSET;
-    
-    else{
+    if(switchSensor)
         dz = _VisionPose.getZ();
+
+    else{
+        dz = _platformState.getZ() - _state.getZ() + PLATFORM_OFFSET;
     }
     
     dx = _VisionPose.getX();

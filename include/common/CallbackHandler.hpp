@@ -176,7 +176,7 @@ public:
 		
 		_Ultrasonic_pos.setVz((float)msg->Z_Velocity);
 
-		_Ultrasonic_pos.IsValid = msg->isValid; 
+		_Ultrasonic_pos.IsValid = (bool)msg->isValid; 
 
 	}
 

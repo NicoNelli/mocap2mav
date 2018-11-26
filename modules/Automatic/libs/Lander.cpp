@@ -439,10 +439,18 @@ void Lander::comp() {
     double z_target_v = _platformState.getVz() - desc;
     double err_v = z_target_v - _state.getVz();
     z_target_v += params_automatic::KPCompV * (err_v);
-	
 
-	std::cout<<"ErrrorVel: "<< err_v<< std::endl;
-	std::cout<<"MyErrorVel: "<< -(_UltraInfo.getVz() ) - desc << std::endl;
+
+	// TEST
+	double Z_target_v = ( -_UltraInfo.getVz() + _state.getVz() ) - desc;
+	double Err_v = Z_target_v - _state.getVz();
+	Z_target_v += params_automatic::KPCompV * (Err_v);
+
+	std::cout<<"Target: "<< z_target_v << std::endl;
+	std::cout<<"MyTarget: "<< Z_target_v << std::endl;
+
+
+	
 
 
 

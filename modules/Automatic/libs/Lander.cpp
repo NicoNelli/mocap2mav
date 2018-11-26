@@ -367,7 +367,7 @@ void Lander::init() {
     resetSetPoint();
 
     //Go to max tracking height
-    //_setPoint.setZ(params_automatic::zMax);
+    _setPoint.setZ(params_automatic::zMax);
 
 }
 
@@ -435,10 +435,17 @@ void Lander::comp() {
 
     //Calculate desired vertical velocity in order to compensate oscillations
     double desc = common::interpolate(fabs(dz), DRATE_MAX, DRATE_MIN, TMAX, TMIN);
+    
     double z_target_v = _platformState.getVz() - desc;
     double err_v = z_target_v - _state.getVz();
-
     z_target_v += params_automatic::KPCompV * (err_v);
+	
+
+	std::cout<<"ErrrorVel: "<< err_v<< std::endl;
+	std::cout<<"MyErrorVel: "<< -(_UltraInfo.getVz() ) - desc << std::endl;
+
+
+
 
     //Now we need to transform this velocity in a position setpoint since in Firmware:
     // VelSP = Kp * PosError then PosSP = ( VelSP / Kp ) + RobotPos

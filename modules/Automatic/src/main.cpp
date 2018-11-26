@@ -84,7 +84,7 @@ int main(int argc, char** argv){
         //It waits for one of a set of file descriptors to become ready to perform I/O
 		int ret = poll(fds,4,0);
 
-		//It checks with bitwise NAD if the two events are the same
+		//It checks with bitwise AND if the two events are the same
 		if(fds[0].revents & POLLIN){
 
 			handler3.handle();

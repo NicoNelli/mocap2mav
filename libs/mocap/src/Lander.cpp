@@ -8,6 +8,7 @@
 #include "parameters.h"
 #include "common/conversions.h"
 
+
 Lander::Lander()
         : _horizontaErr((double)0)    , _tauHold((double)0), _tauLost((double)0), _tauErr((double)0), _NHold(0),
           _NLost(0),_NComp(0), _initS(&_machine), _holdS(&_machine)  , _asceS(&_machine)  , _descS(&_machine),_compS(&_machine),
@@ -50,7 +51,6 @@ MavState Lander::getCommand() {
 void Lander::initStateMachine() {
 
     switchSensor = false;
-
     //Link signals
     //assign initialized errors of the Lander class with
     //the one of the LandMachine.
@@ -134,7 +134,6 @@ void Lander::updateSignals() {
     dx = _VisionPose.getX();
     dy = _VisionPose.getY();
 
-
     _err[0] = dx;
     _err[1] = dy;
     _err[2] = 0; //Trick, used to calculate horizontal error
@@ -145,11 +144,11 @@ void Lander::updateSignals() {
     //set the horizontal and vertical error.
 
     //Increment N if needed
-    if (_horizontaErr < _tauHold) {
+    if (_horizontaErr < _tauHold && _VisionPose.VisionDataUpdated) {
         _NLost = 0;
         _NHold++;
     }
-    else if (_horizontaErr > _tauLost) {
+    else if (_horizontaErr > _tauLost || !_VisionPose.VisionDataUpdated) {
         _NHold = 0;
         _NComp = 0;
         _NLost++;
@@ -204,11 +203,17 @@ void Lander::updateSignals() {
     std::cout << "HERRV: " << _verticalErr<< std::endl;
     std::cout << "switchSensor" << switchSensor<< std::endl;
     std::cout << "visionData" <<_VisionPose.VisionDataUpdated<<std::endl;
+    std::cout << "roll: " <<_VisionPose.getRoll()<<std::endl;
+    std::cout << "pitch: " <<_VisionPose.getPitch()<<std::endl;
     std::cout << "NHOLD: " << _NHold<< std::endl;
     std::cout << "NLOST: " << _NLost<< std::endl;
     std::cout << "NCOMP: " << _NComp<< std::endl;
-    std::cout << "INTEX: " << _err_int[0] << std::endl;
-    std::cout << "INTEY: " << _err_int[1] << std::endl;
+    std::cout << "X " <<_state.getX()<<std::endl;
+    std::cout << "Y " << _state.getY()<< std::endl;
+    std::cout << "Z " << _state.getZ()<< std::endl;
+
+    //std::cout << "INTEX: " << _err_int[0] << std::endl;
+    //std::cout << "INTEY: " << _err_int[1] << std::endl;
     std::cout << "**********************************" << std::endl;
 #endif
 
@@ -263,7 +268,9 @@ void Lander::run() {
                     --set the setpoint to the relative position
                     --set the z axis to the max one 7 meters.
                 */
-                initDone = true;
+                //initDone = true;
+            	initDone = _VisionPose.VisionDataUpdated;
+
             }
             break;
 
@@ -276,6 +283,7 @@ void Lander::run() {
             hold();
             //control the x and y error position. 
             break;
+        
         case (AbstractLandState::states::DESC):
             std::cout<<"DESC"<<std::endl;
 
@@ -316,7 +324,6 @@ void Lander::run() {
         default:
             hold();
             break;
-
     }
 
 
@@ -366,8 +373,8 @@ void Lander::init() {
     resetSetPoint();
 
     //Go to max tracking height
-    //_setPoint.setZ(params_automatic::zMax);
-
+    _setPoint.setZ(params_automatic::zMax);
+    
 }
 
 void Lander::hold() {
@@ -397,13 +404,13 @@ void Lander::hold() {
 
     Eigen::Vector2d targetVect(_state.getX() + xTarget , _state.getY() + yTarget);
 
-
     updateIntegrals();
     //PosSP = PlatPos + K * Vplat
     targetVect += params_automatic::KpHoldV * tempVel;
 
     //Fill right fields
     _setPoint.setPosition(targetVect(0),targetVect(1),_setPoint.getZ());
+
     _setPoint.setType(MavState::POSITION);
 
 }
@@ -418,8 +425,8 @@ void Lander::asce() {
 
 void Lander::desc() {
 
+	_setPoint.setZ(_setPoint.getZ() - 0.10);
 
-    _setPoint.setZ(_setPoint.getZ() - 0.10);
 }
 
 void Lander::comp() {
@@ -454,6 +461,7 @@ void Lander::clampZSP() {
     temp = common::clamp(_setPoint.getZ(),params_automatic::zMin,params_automatic::zMax);
 
     _setPoint.setZ(temp);
+
 }
 
 void Lander::land() {

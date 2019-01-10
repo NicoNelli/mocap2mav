@@ -64,6 +64,22 @@ void MavState::setYaw(double yaw) {
     _yaw = yaw;
 }
 
+void MavState::setRoll(double roll) {
+    _roll = roll;
+}
+
+void MavState::setPitch(double pitch) {
+    _pitch = pitch;
+}
+
+double MavState::getRoll() const{
+    return _roll;
+}
+
+double MavState::getPitch() const{
+    return _pitch;
+}
+
 double MavState::getYaw() const{
     return _yaw;
 }

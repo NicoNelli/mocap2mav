@@ -43,7 +43,13 @@ public:
     double getVz() const;
 
     void setYaw(double yaw);
+    void setRoll(double roll);
+    void setPitch(double pitch);
+
     double getYaw()const;
+    double getRoll()const;
+    double getPitch()const;
+
     double getYawFromQuat() const;
 
 
@@ -78,7 +84,12 @@ public:
 
         this->setType(m.getType());
 
-	this->VisionDataUpdated = m.VisionDataUpdated;
+	    this->VisionDataUpdated = m.VisionDataUpdated;
+
+        this->setRoll(m.getRoll());
+
+        this->setPitch(m.getPitch());
+
 
     }
     long int timestamp;
@@ -96,6 +107,8 @@ private:
     double _vy;
     double _vz;
     double _yaw;
+    double _roll;
+    double _pitch;
     type   _type;
     Eigen::Quaterniond _orientation;
 

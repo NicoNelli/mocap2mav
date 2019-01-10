@@ -14,7 +14,7 @@ void InitState::handle(){
     static int wait = 0;
 
     //Wait 20 iterations
-    if(wait++ > 20) {
+    if(wait++ > 20 && _VisionPose.VisionDataUpdated) {
         this->_contextL->setStatePtr(_nextState);
         printStateTransition(); //print the actual state.
     }
@@ -87,8 +87,12 @@ void CompState::handle() {
     if (!onTarget || !_centered){//if is not on the target or if is not centered..coming back!
         this->_contextL->setStatePtr(_nextState); //set next state (AsceState)
         printStateTransition();
-    }
+    
+    }else if( fabs(_VisionPose.getRoll()) > params_automatic::RollThreshold || fabs(_VisionPose.getPitch()) > params_automatic::PitchThreshold ){
+        this->_contextL->setStatePtr(_nextState); //set next state (AsceState)
+        printStateTransition();
 
+    }
 
    std::cout << "VERRRRRRRR: " << _verticalErr << std::endl;
 

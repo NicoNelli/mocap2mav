@@ -8,6 +8,7 @@
 #include "MavState.h"
 #include "lcm/lcm-cpp.hpp"
 #include "lcm_messages/geometry/pose.hpp"
+#include "lcm_messages/geometry/vision.hpp"
 #include "lcm_messages/exec/task.hpp"
 #include "lcm_messages/exec/state.hpp"
 #include <iostream>
@@ -90,7 +91,7 @@ public:
 
     }
 
-    void ApriltagCallback(const lcm::ReceiveBuffer* rbuf, const std::string& chan, const geometry::pose* msg){
+    void ApriltagCallback(const lcm::ReceiveBuffer* rbuf, const std::string& chan, const geometry::vision* msg){
         //callback of the vision system.
 
         _relative_pos.setPosition((float)msg->position[0],(float)msg->position[1],(float)msg->position[2]);
@@ -98,6 +99,12 @@ public:
         _relative_pos.setV((float)msg->velocity[0],(float)msg->velocity[1],(float)msg->velocity[2]);
 
         _relative_pos.setOrientation((float)msg->orientation[0],(float)msg->orientation[1],(float)msg->orientation[2],(float)msg->orientation[3]);
+
+        _relative_pos.setRoll((float)msg->roll);
+
+        _relative_pos.setPitch((float)msg->pitch);
+
+        _relative_pos.setYaw((float)msg->yaw);
 
     }
 

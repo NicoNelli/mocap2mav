@@ -7,6 +7,12 @@
 
 namespace params_automatic {
 
+    //roll upper limit to land
+    static const double RollThreshold = 0.26;
+
+    //pitch upper limit to land
+    static const double PitchThreshold = 0.26;
+
     //Number of consecutive frames in which tracking is considered valid
     static const int    NFramesHold     = 120;
 
@@ -30,13 +36,13 @@ namespace params_automatic {
     static const double KpHoldV          = 0.9;
 
     //Proportional gain times horizontal error
-    static const double KpHold           = 1.20; // 0.5
+    static const double KpHold           = 0.8;//1.35; //0.65; 
 
     //Differential gain times horizontal error
-    static const double KdHold           = 0.00;
+    static const double KdHold           = 0.0;
 
     //Integral gain times integral horizontal error
-    static const double KiHold          = 0.0005; //0.1
+    static const double KiHold          = 0.0005; //0.0001;
 
     //Proportional gain for velocity tracking
     static const double KPCompV          = 0.6;
@@ -49,5 +55,18 @@ namespace params_automatic {
     static const double maxOutput       = 10;
 
 }
+
+/*
+Kp limit found : 1.45
+
+oscilation time: 3.24 sec
+
+===>
+Kp = 1.16
+Ki = 0.89
+
+
+*/
+
 
 #endif //MOCAP2MAV_PARAM_H

@@ -14,7 +14,7 @@ void InitState::handle(){
     static int wait = 0;
 
     //Wait 100 iterations
-    if(wait++ > 100) {
+    if(wait++ > 50 && _VisionPose.VisionDataUpdated) {
         this->_contextL->setStatePtr(_nextState);
         printStateTransition(); //print the actual state 
         wait=0;
@@ -101,14 +101,19 @@ void CompState::handle() {
         
         this->_contextL->setStatePtr(_nextState); //set the next state(AsceState)
         printStateTransition();
-    }
-	
-	if ( !_UltraInfo.UltrasonicDataUpdated ){ 
+    
+	}else if ( !_UltraInfo.UltrasonicDataUpdated ){ 
         //if the ultrasonic sensor data are not available..
         
         this->_contextL->setStatePtr(_nextState); //set the next state(AsceState)
         printStateTransition();
-    }
+    
+	}else if ( fabs(_VisionPose.getRoll()) > params_automatic::RollThreshold || fabs(_VisionPose.getPitch()) > params_automatic::PitchThreshold ){
+
+		this->_contextL->setStatePtr(_nextState); //set the next state(AsceState)
+        printStateTransition();
+
+	}
 
 
    std::cout << "VERRRRRRRR: " << _verticalErr << std::endl;
@@ -144,16 +149,16 @@ void LandState::handle() {
     bool onTarget = _NComp > params_automatic::NFramesComp;
 
     if (!onTarget || !_centered){ //set the next state(AsceState)
-        this->_contextL->setStatePtr(_nextState);
+        //this->_contextL->setStatePtr(_nextState);
         printStateTransition();
         wait = 0;
     }
 
     //Restart the procedure
-    if(wait++ > 100) {
-        this->_contextL->setStatePtr(_restartState); //set the next state(InitState)
-        printStateTransition();
-        wait=0;
-    }
+    //if(wait++ > 100) {
+     //   this->_contextL->setStatePtr(_restartState); //set the next state(InitState)
+       // printStateTransition();
+        //wait=0;
+    //}
 
 }

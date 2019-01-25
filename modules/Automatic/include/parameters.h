@@ -11,7 +11,13 @@
 
 namespace params_automatic {
 
-    /**
+	//roll upper limit to land
+	static const double RollThreshold = 0.1;    
+
+	//pitch upper limit to land
+	static const double PitchThreshold = 0.1;
+
+	/**
      * Offset between baricenter of the drone and the ultrasonic sensor 
      */
 
@@ -46,13 +52,13 @@ namespace params_automatic {
      * Max altitude for landing procedure 
      */
 
-    static const double zMax            = 1.65;
+    static const double zMax            = 1.80;
 
     /**
      * Minimum altitude for landing procedure (before compensating)     
      */
 
-    static double       zMin            = 1.4;
+    static double       zMin            = 1.6;
 
     /**
      * Proportional gain times platform velocity 

@@ -98,19 +98,27 @@ void Executioner::run(){
         std::cout<<std::endl;
         std::cout << "***************************************"<<std::endl;
         std::cout << "Performing node: " << node++ << " with action: " << common::printAction(_actualTask.action)<<std::endl;
-#ifdef GUI
-        std::cout << "Do you want to proceed? Y/N"<<std::endl;
-#endif
+
+		if( common::printAction(_actualTask.action).compare("Take off") == 0 ){
+			#ifdef GUI
+        	std::cout << "Do you want to proceed? Y/N"<<std::endl;
+			#endif
+		}
+	
         std::cout << "***************************************"<<std::endl;
         std::cout<<std::endl;
 
 
         do {
-        #ifdef GUI
-            std::cin  >> in;
-        #else
-            in = 'y';
-        #endif
+			if( common::printAction(_actualTask.action).compare("Take off") == 0 ){
+        		#ifdef GUI
+            	std::cin  >> in;
+        		#else
+            	in = 'y';
+        		#endif
+			}
+			else
+				in = 'y';
 
             switch (in) {
 

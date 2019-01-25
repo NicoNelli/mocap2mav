@@ -120,7 +120,7 @@ void Lander::updateSignals() {
     if( switchSensor )
 		dz = _VisionPose.getZ();
 	else
-		dz = -(_UltraInfo.getZ()+params_automatic::OffsetUltraSensor);
+		dz = (_UltraInfo.getZ()-params_automatic::OffsetUltraSensor);
 	
 	
     dx = _VisionPose.getX();
@@ -136,11 +136,11 @@ void Lander::updateSignals() {
     _verticalErr  = _err[2];
 
     //Increment N if needed
-    if (_horizontaErr < _tauHold) {
+    if (_horizontaErr < _tauHold && _VisionPose.VisionDataUpdated) {
         _NLost = 0;
         _NHold++;
     }
-    else if (_horizontaErr > _tauLost) {
+    else if (_horizontaErr > _tauLost && _VisionPose.VisionDataUpdated) {
         _NHold = 0;
         _NComp = 0;
         _NLost++;
@@ -187,13 +187,16 @@ void Lander::updateSignals() {
     std::cout << "HERRV: " << _verticalErr<< std::endl;
 
 	std::cout<<"Vision_Z:"<<_VisionPose.getZ()<<std::endl;	
-	std::cout<<"Ultrasonic_Z:"<<-(_UltraInfo.getZ()+params_automatic::OffsetUltraSensor)<<std::endl;	
+	std::cout<<"Ultrasonic_Z:"<<(_UltraInfo.getZ() - params_automatic::OffsetUltraSensor)<<std::endl;	
 	std::cout<<"Valid? "<<_UltraInfo.IsValid<<std::endl;		
 
 	std::cout << "switchSensor: " << switchSensor << std::endl;
 	std::cout << "VisionDataAvailable: " << _VisionPose.VisionDataUpdated << std::endl;
 	std::cout << "UltrasonicdataAvailable: " << _UltraInfo.UltrasonicDataUpdated << std::endl;			
-    std::cout << "NHOLD: " << _NHold<< std::endl;
+    std::cout << "Roll: " << _VisionPose.getRoll() << std::endl;
+    std::cout << "Pitch: " << _VisionPose.getPitch() << std::endl;
+    std::cout << "Yaw: " << _VisionPose.getYaw() << std::endl;
+	std::cout << "NHOLD: " << _NHold<< std::endl;
     std::cout << "NLOST: " << _NLost<< std::endl;
     std::cout << "NCOMP: " << _NComp<< std::endl;
     //std::cout << "INTEX: " << _err_int[0] << std::endl;
@@ -257,7 +260,9 @@ void Lander::run() {
 					--set the z axis to the max one 2.5 meters.
 				*/
 
-                initDone = true;
+                //initDone = true;
+				initDone = _VisionPose.VisionDataUpdated;		
+
             }
             break;
 
@@ -429,27 +434,29 @@ void Lander::comp() {
     	dz = _VisionPose.getZ() + PLATFORM_OFFSET;
 	else{
 		
-		dz = -(_UltraInfo.getZ()+params_automatic::OffsetUltraSensor);
+		dz = (_UltraInfo.getZ() - params_automatic::OffsetUltraSensor);
 		std::cout<<"ULTRASENSOR"<<std::endl;	
 	}
 
     //Calculate desired vertical velocity in order to compensate oscillations
     double desc = common::interpolate(fabs(dz), DRATE_MAX, DRATE_MIN, TMAX, TMIN);
     
-    double z_target_v = _platformState.getVz() - desc;
-    double err_v = z_target_v - _state.getVz();
-    z_target_v += params_automatic::KPCompV * (err_v);
+	//FIRST
+    //double z_target_v = _platformState.getVz() - desc;
+    //double err_v = z_target_v - _state.getVz();
+    //z_target_v += params_automatic::KPCompV * (err_v);
 
 
-	// TEST
-	double Z_target_v = ( -_UltraInfo.getVz() + _state.getVz() ) - desc;
-	double Err_v = Z_target_v - _state.getVz();
-	Z_target_v += params_automatic::KPCompV * (Err_v);
+	// SECOND
+	//double Z_target_v = ( _UltraInfo.getVz() + _state.getVz() ) - desc;
+	//double Err_v = Z_target_v - _state.getVz();
+	//Z_target_v += params_automatic::KPCompV * (Err_v);
 
-	std::cout<<"Target: "<< z_target_v << std::endl;
-	std::cout<<"MyTarget: "<< Z_target_v << std::endl;
-
-
+	//std::cout<<"Target: "<< z_target_v << std::endl;
+	//std::cout<<"MyTarget: "<< Z_target_v << std::endl;
+	
+	double Err_v = desc - _UltraInfo.getVz();
+	double Z_target_v = params_automatic::KPCompV * (Err_v);
 	
 
 
@@ -458,7 +465,13 @@ void Lander::comp() {
     //Now we need to transform this velocity in a position setpoint since in Firmware:
     // VelSP = Kp * PosError then PosSP = ( VelSP / Kp ) + RobotPos
 
-    _setPoint.setZ((z_target_v) + _state.getZ());
+    _setPoint.setZ((Z_target_v) + _state.getZ());
+	
+    if(_setPoint.getZ() > params_automatic::zMax ){
+	_setPoint.setZ(params_automatic::zMax);
+
+    }
+
 
 }
 

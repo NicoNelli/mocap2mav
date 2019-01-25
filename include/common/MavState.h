@@ -149,19 +149,46 @@ public:
 
     double getVz() const;
 
+	/**
+     * @brief Such method allows to set roll angle
+     * @param yaw Roll angle of the drone.
+     */
+
+	void setRoll(double roll);
+
+	/**
+     * @brief Such method allows to set pitch angle
+     * @param pitch Pitch angle of the drone.
+     */
+
+	void setPitch(double pitch);
+
     /**
      * @brief Such method allows to set yaw angle
-     * @param yaw yaw angle of the drone.
+     * @param yaw Yaw angle of the drone.
      */
 
     void setYaw(double yaw);
 
+	/**
+     * @brief Such method returns the roll angle 
+     * @return The roll angle
+     */
+
+	double getRoll() const;
+
+	/**
+     * @brief Such method returns the pitch angle 
+     * @return The pitch angle
+     */
+
+	double getPitch() const;
     /**
      * @brief Such method returns the yaw angle 
      * @return The yaw angle
      */
 
-    double getYaw()const;
+    double getYaw() const;
 
     /**
      * @brief Such method returns the yaw from the quaternion previously set
@@ -241,6 +268,10 @@ public:
 
         this->setYaw(m.getYaw());
 
+		this->setRoll(m.getRoll());
+
+		this->setRoll(m.getPitch());
+
         this->setType(m.getType());
 
 	this->VisionDataUpdated = m.VisionDataUpdated;
@@ -287,6 +318,8 @@ private:
     double _vx;
     double _vy;
     double _vz;
+	double _roll;
+	double _pitch;
     double _yaw;
     type   _type;
     Eigen::Quaterniond _orientation;

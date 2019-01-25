@@ -1,5 +1,4 @@
 
-
 #include "common/MavState.h"
 
 MavState::MavState()
@@ -59,8 +58,24 @@ double MavState::getVz() const{
     return _vz;
 }
 
+void MavState::setRoll(double roll) {
+    _roll = roll;
+}
+
+void MavState::setPitch(double pitch) {
+    _pitch = pitch;
+}
+
 void MavState::setYaw(double yaw) {
     _yaw = yaw;
+}
+
+double MavState::getRoll() const{
+    return _roll;
+}
+
+double MavState::getPitch() const{
+    return _pitch;
 }
 
 double MavState::getYaw() const{

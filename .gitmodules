@@ -7,6 +7,3 @@
 [submodule "projectLIBS/miniPID"]
 	path = projectLIBS/miniPID
 	url = https://github.com/andrea-nisti/MiniPID.git
-[submodule "projectLIBS/UltrasonicSensor"]
-	path = projectLIBS/UltrasonicSensor
-	url = https://github.com/NicoNelli/UltrasonicSensor.git

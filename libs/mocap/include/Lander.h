@@ -41,6 +41,15 @@ public:
     void run();
 
     bool switchSensor; //used to switch between vision system and ultrasonic sensor.
+
+    //perform inspection
+    double time;
+    double X0;
+    double Y0;
+    bool Inspection;
+    double RadiusInspection;
+    double Period;
+
 private:
 
     LandMachine  _machine; //derived from machine one.
@@ -67,7 +76,7 @@ private:
     RToLandState    _rtolS; //its constructor set its ID to R2LA
     CompState       _compS; //its constructor set its ID to COMP
     LandState       _landS; //its constructor set its ID to LAND
-
+    InspectionState _inspeS; //its constructor set its ID to INSPE
 
     int _actualState;
     int _prevState;
@@ -123,6 +132,11 @@ private:
     void comp();
     //Aggressive land
     void land();
+    //circular trajectory for inspection. It tries with a circular 
+    //trajectory to find the platform
+    void inspection();
+
+    void initInspection(); //initialise variables to perform inspection 
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

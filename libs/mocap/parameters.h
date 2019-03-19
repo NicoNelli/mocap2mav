@@ -6,7 +6,10 @@
 #define MOCAP2MAV_PARAM_H
 
 namespace params_automatic {
-
+    //init value of radius for inspection
+    static const double inspeRadius = 1;
+    //linear velocity of the drone during inspection
+    static const double inspeLinVel = 0.3;
     //roll upper limit to land
     static const double RollThreshold = 0.26;
 

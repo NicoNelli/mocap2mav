@@ -12,7 +12,7 @@
 Lander::Lander()
         : _horizontaErr((double)0)    , _tauHold((double)0), _tauLost((double)0), _tauErr((double)0), _NHold(0),
           _NLost(0),_NComp(0), _initS(&_machine), _holdS(&_machine)  , _asceS(&_machine)  , _descS(&_machine),_compS(&_machine),
-          _rtolS(&_machine),_landS(&_machine), _err(0,0,0), _err_int(0,0,0), _err_diff(0,0,0), _dt(0), _prevTime(0), _actualTime(0),
+          _rtolS(&_machine),_landS(&_machine),_inspeS(&_machine), _err(0,0,0), _err_int(0,0,0), _err_diff(0,0,0), _dt(0), _prevTime(0), _actualTime(0),
           _actualState(0),_prevState(0), _verticalErr(0), _holdPIDX(params_automatic::KpHold,params_automatic::KiHold,params_automatic::KdHold),
           _holdPIDY(params_automatic::KpHold,params_automatic::KiHold,params_automatic::KdHold)
 {
@@ -50,7 +50,9 @@ MavState Lander::getCommand() {
 
 void Lander::initStateMachine() {
 
+	Inspection = true;
     switchSensor = false;
+
     //Link signals
     //assign initialized errors of the Lander class with
     //the one of the LandMachine.
@@ -70,12 +72,14 @@ void Lander::initStateMachine() {
     _machine._centered     =  &_centered;
     _machine._lost         =  &_lost;
 
-
     //Link states
     //keep in mind that _nextState object is inherited from the AbstractLandState class.
     //the following instructions set the machine state.
     _initS._nextState    = &_holdS;
+	_initS._nextInspeState 	 = &_inspeS;
 
+	_inspeS._nextState = &_initS;
+    
     _holdS._nextAscState = &_asceS;
     _holdS._nextDesState = &_descS;
     _holdS._nextState    = &_rtolS;
@@ -197,6 +201,7 @@ void Lander::updateSignals() {
 
 #ifdef DEBUG
 
+    
     std::cout << "**********************************" << std::endl;
     std::cout << "STATE: " << _actualState<< std::endl;
     std::cout << "HERRO: " << _horizontaErr<< std::endl;
@@ -211,10 +216,13 @@ void Lander::updateSignals() {
     std::cout << "X " <<_state.getX()<<std::endl;
     std::cout << "Y " << _state.getY()<< std::endl;
     std::cout << "Z " << _state.getZ()<< std::endl;
+    std::cout<<"inspection: "<<Inspection<<std::endl;
+
 
     //std::cout << "INTEX: " << _err_int[0] << std::endl;
     //std::cout << "INTEY: " << _err_int[1] << std::endl;
     std::cout << "**********************************" << std::endl;
+    
 #endif
 
 
@@ -270,9 +278,17 @@ void Lander::run() {
                 */
                 //initDone = true;
             	initDone = _VisionPose.VisionDataUpdated;
+            	if(_VisionPose.VisionDataUpdated)
+            		Inspection = true;
 
             }
             break;
+        case (AbstractLandState::states::INSPE):
+            std::cout<<"INSPE"<<std::endl;
+
+            inspection();
+
+            break;    
 
         case (AbstractLandState::states::HOLD):
             std::cout<<"HOLD"<<std::endl;
@@ -375,6 +391,42 @@ void Lander::init() {
     //Go to max tracking height
     _setPoint.setZ(params_automatic::zMax);
     
+}
+
+void Lander::initInspection() {
+
+	time = 0;
+	X0 = _state.getX();
+	Y0 = _state.getY();
+	Inspection = false;
+	
+	RadiusInspection = params_automatic::inspeRadius; // radius of 1 meter
+	Period = (2*PI*RadiusInspection)/params_automatic::inspeLinVel;
+
+}
+
+void Lander::inspection() {
+//This function implements a circular trajectory
+
+if(Inspection)
+	initInspection();
+
+
+if(time > Period){
+	time = 0;	
+	RadiusInspection += 0.5; 
+	Period = (2*PI*RadiusInspection)/params_automatic::inspeLinVel;
+}
+
+time+=_dt;
+
+_setPoint.setPosition(RadiusInspection * cos((params_automatic::inspeLinVel/RadiusInspection)*time) + X0, RadiusInspection * sin((params_automatic::inspeLinVel/RadiusInspection)*time) + Y0,params_automatic::zMax);
+
+std::cout<<"Circ:  "<<_setPoint.getX()<<std::endl;
+std::cout<<"Time: "<<time<<std::endl;
+
+_setPoint.setType(MavState::POSITION);
+
 }
 
 void Lander::hold() {

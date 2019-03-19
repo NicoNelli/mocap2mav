@@ -63,20 +63,16 @@ int main(int argc, char** argv){
 	MavState platform;
 	MavState visionSystem;
 
-	double previousX;
-	double previousY;
-	double previousZ;
-
 	MavState estim;
 
 	
 	while(0==handler.handle()){
 
-	if( !visionSystem.VisionDataUpdated)//&& !(printAction(autom._actualTask.action).compare("Take off")) )
-	{
+	//if( !visionSystem.VisionDataUpdated)//&& !(printAction(autom._actualTask.action).compare("Take off")) )
+	//{
 	autom.setState(call._vision_pos); //fill the state of the UAV in the automatic class
     lander.setState(call._vision_pos); 
-	}
+	//}
 
 		int ret = poll(fds,3,0);
 
@@ -117,25 +113,11 @@ int main(int argc, char** argv){
 			visionSystem = call._relative_pos;
 			visionSystem.VisionDataUpdated = true; //the vision data are updated
 
-			if(visionSystem.VisionDataUpdated )
-				{
-
-				estim.setPosition(call._vision_pos.getX() + (visionSystem.getX() - previousX), call._vision_pos.getY() + (visionSystem.getY() - previousY), call._vision_pos.getZ() + (visionSystem.getZ() - previousZ) );
-				autom.setState(estim); //fill the state of the UAV in the automatic class
-    			lander.setState(estim); 
-				}
-
 			//DEBUG
 			//std::cout<<"x:"<<visionSystem.getX()<<std::endl;
     		//std::cout<<"y:"<<visionSystem.getY()<<std::endl;
     		//std::cout<<"z:"<<visionSystem.getZ()<<std::endl;
             autom.setVisionFeedback(visionSystem);
-
-
-			previousX = visionSystem.getX();
-			previousY = visionSystem.getY();
-			previousZ = visionSystem.getZ();
-
 
 		}
 		else {

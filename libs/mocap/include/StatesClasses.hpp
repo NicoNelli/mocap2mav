@@ -28,6 +28,7 @@ public:
     bool *_holding;
     bool *_lost;
     bool *_centered;
+    bool *_Inspection;
 
 };
 
@@ -38,6 +39,7 @@ public:
     enum states{
 
         INIT,
+        INSPE,
         HOLD,
         DESC,
         ASCE,
@@ -95,16 +97,33 @@ protected:
     bool _centered;
     bool _holding;
     bool _lost;
+
+
 };
 
 class InitState : public AbstractLandState {
 public:
+    AbstractLandState* _nextInspeState;
     InitState(LandMachine *context) :  AbstractLandState(context){
         setId();
     }
     void setId() override {
 
         _id = INIT;
+
+    }
+    void handle();
+};
+
+class InspectionState : public AbstractLandState {
+public:
+
+    InspectionState(LandMachine *context) :  AbstractLandState(context){
+        setId();
+    }
+    void setId() override {
+
+        _id = INSPE;
 
     }
     void handle();

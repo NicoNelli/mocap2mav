@@ -15,10 +15,26 @@ void InitState::handle(){
 
     //Wait 20 iterations
     if(wait++ > 20 && _VisionPose.VisionDataUpdated) {
+
         this->_contextL->setStatePtr(_nextState);
         printStateTransition(); //print the actual state.
     }
+    else if(!_VisionPose.VisionDataUpdated){
+        this->_contextL->setStatePtr(_nextInspeState);
+        printStateTransition(); //print the actual state.
+
+    }
+
 }
+
+void InspectionState::handle() {
+    getSignals();
+
+    if(_VisionPose.VisionDataUpdated)
+        this->_contextL->setStatePtr(_nextState); //set next state (InitState)
+        printStateTransition();
+}
+
 void HoldState::handle(){
 
     getSignals(); //copy the values of the LandMachine class into the ones of the AbstractLandState class.
@@ -130,9 +146,9 @@ void RToLandState::handle() {
 void LandState::handle() {
 
     getSignals();
-    bool onTarget = _NComp > params_automatic::NFramesComp;
 
-    if (!onTarget || !_centered){//if is not on the target or if is not centered..coming back!
+    if (!_centered){//if is not on the target or if is not centered..coming back!
+
         this->_contextL->setStatePtr(_nextState);
         printStateTransition();
     }

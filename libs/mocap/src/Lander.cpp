@@ -5,7 +5,6 @@
 #include <iostream>
 #include "StatesClasses.hpp"
 #include "Lander.h"
-#include "parameters.h"
 #include "common/conversions.h"
 
 
@@ -13,13 +12,20 @@ Lander::Lander()
         : _horizontaErr((double)0)    , _tauHold((double)0), _tauLost((double)0), _tauErr((double)0), _NHold(0),
           _NLost(0),_NComp(0), _initS(&_machine), _holdS(&_machine)  , _asceS(&_machine)  , _descS(&_machine),_compS(&_machine),
           _rtolS(&_machine),_landS(&_machine),_inspeS(&_machine), _err(0,0,0), _err_int(0,0,0), _err_diff(0,0,0), _dt(0), _prevTime(0), _actualTime(0),
-          _actualState(0),_prevState(0), _verticalErr(0), _holdPIDX(params_automatic::KpHold,params_automatic::KiHold,params_automatic::KdHold),
-          _holdPIDY(params_automatic::KpHold,params_automatic::KiHold,params_automatic::KdHold)
+          _actualState(0),_prevState(0), _verticalErr(0), _holdPIDX(0,0,0), _holdPIDY(0,0,0)
 {
 
 
     //Load parameters
+    param.loadConfigFile("Landing_params.txt");
 
+    _holdPIDX.setP(param.KpHold);
+    _holdPIDX.setI(param.KiHold);
+    _holdPIDX.setD(param.KdHold);
+
+    _holdPIDY.setP(param.KpHold);
+    _holdPIDY.setI(param.KiHold);
+    _holdPIDY.setD(param.KdHold);
 
     initStateMachine();
     //set the state machine
@@ -28,11 +34,16 @@ Lander::Lander()
     //set the actual state of the machine, intially is is INIT
 
     _err_prev = _err;
-    _holdPIDX.setMaxIOutput(params_automatic::maxIntValue);
-    _holdPIDY.setMaxIOutput(params_automatic::maxIntValue);
+    
+    //_holdPIDX.setMaxIOutput(params_automatic::maxIntValue);
+    //_holdPIDY.setMaxIOutput(params_automatic::maxIntValue);
+    
+    _holdPIDX.setMaxIOutput(param.maxIntValue);
+    _holdPIDY.setMaxIOutput(param.maxIntValue);
     //put a saturation for the integral part of the PID
 
-    _holdPIDX.setOutputLimits(params_automatic::maxOutput);
+    //_holdPIDX.setOutputLimits(params_automatic::maxOutput);
+    _holdPIDX.setOutputLimits(param.maxOutput);
     //put a saturation for the whole PID
 }
 
@@ -66,7 +77,8 @@ void Lander::initStateMachine() {
     _machine._NComp        =  &_NComp;
     _machine._state        =  &_state;
     _machine._setPoint     =  &_setPoint;
-    _machine._VisionPose   = &_VisionPose;
+    _machine._VisionPose   =  &_VisionPose;
+    _machine.param         =  &param;
     //New signals
     _machine._holding      =  &_holding;
     _machine._centered     =  &_centered;
@@ -99,9 +111,14 @@ void Lander::initStateMachine() {
 
     _machine.setStatePtr(&_initS); //set the state with the INIT one.
 
-    _tauHold = 0.5 * params_automatic::platformLenght;
-    _tauLost = params_automatic::platformLenght * 0.7;
+    //_tauHold = 0.5 * params_automatic::platformLenght;
+    //_tauLost = params_automatic::platformLenght * 0.7;
+    _tauHold = param.hold_threshold;
+    _tauLost = param.lost_threshold;
     //this two parameters are thresholds for the horizontal error.
+
+
+
 
 
     //Print actual state
@@ -159,18 +176,23 @@ void Lander::updateSignals() {
     }
 
     if( switchSensor ) { //in this condition is also taken into account the update vision data 
-        _holding  = (_NHold > params_automatic::NFramesHold && _VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered valid.
+        //_holding  = (_NHold > params_automatic::NFramesHold && _VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered valid.
+        _holding  = (_NHold > param.NFramesHold && _VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered valid.
 
-        _lost     = (_NLost > params_automatic::NFramesLost || !_VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered not valid.
+        //_lost     = (_NLost > params_automatic::NFramesLost || !_VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered not valid.
+        _lost     = (_NLost > param.NFramesLost || !_VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered not valid.
 
         _centered = (_horizontaErr < _tauHold * 0.5 && _VisionPose.VisionDataUpdated );
+    
     }
     else{
-        _holding  = (_NHold > params_automatic::NFramesHold );//Number of consecutive frames in which tracking is considered valid.
+        //_holding  = (_NHold > params_automatic::NFramesHold );//Number of consecutive frames in which tracking is considered valid.
+        _holding  = (_NHold > param.NFramesHold );//Number of consecutive frames in which tracking is considered valid.
 
-        _lost     = (_NLost > params_automatic::NFramesLost );//Number of consecutive frames in which tracking is considered not valid.
+        //_lost     = (_NLost > params_automatic::NFramesLost );//Number of consecutive frames in which tracking is considered not valid.
+        _lost     = (_NLost > param.NFramesLost );//Number of consecutive frames in which tracking is considered not valid.
 
-        _centered = (_horizontaErr < _tauHold * 0.5 );
+        _centered = (_horizontaErr < param.comp_threshold );
 
     }
 
@@ -200,7 +222,6 @@ void Lander::updateSignals() {
     _err_prev = _err;
 
 #ifdef DEBUG
-
     
     std::cout << "**********************************" << std::endl;
     std::cout << "STATE: " << _actualState<< std::endl;
@@ -213,9 +234,6 @@ void Lander::updateSignals() {
     std::cout << "NHOLD: " << _NHold<< std::endl;
     std::cout << "NLOST: " << _NLost<< std::endl;
     std::cout << "NCOMP: " << _NComp<< std::endl;
-    std::cout << "X " <<_state.getX()<<std::endl;
-    std::cout << "Y " << _state.getY()<< std::endl;
-    std::cout << "Z " << _state.getZ()<< std::endl;
     std::cout<<"inspection: "<<Inspection<<std::endl;
 
 
@@ -359,8 +377,12 @@ void Lander::updateIntegrals() {
 
     double tempx,tempy;
 
-    tempx = common::clamp(_err_int[0],params_automatic::minIntValue,params_automatic::maxIntValue);
-    tempy = common::clamp(_err_int[1],params_automatic::minIntValue,params_automatic::maxIntValue);
+    //tempx = common::clamp(_err_int[0],params_automatic::minIntValue,params_automatic::maxIntValue);
+    //tempy = common::clamp(_err_int[1],params_automatic::minIntValue,params_automatic::maxIntValue);
+    tempx = common::clamp(_err_int[0],param.minIntValue,param.maxIntValue);
+    tempy = common::clamp(_err_int[1],param.minIntValue,param.maxIntValue);
+
+
 
     _err_int[0] =  tempx;
     _err_int[1] =  tempy;
@@ -389,7 +411,8 @@ void Lander::init() {
     resetSetPoint();
 
     //Go to max tracking height
-    _setPoint.setZ(params_automatic::zMax);
+    //_setPoint.setZ(params_automatic::zMax);
+    _setPoint.setZ(param.zMax);
     
 }
 
@@ -400,8 +423,10 @@ void Lander::initInspection() {
 	Y0 = _state.getY();
 	Inspection = false;
 	
-	RadiusInspection = params_automatic::inspeRadius; // radius of 1 meter
-	Period = (2*PI*RadiusInspection)/params_automatic::inspeLinVel;
+	//RadiusInspection = params_automatic::inspeRadius; // radius of 1 meter
+	//Period = (2*PI*RadiusInspection)/params_automatic::inspeLinVel;
+    RadiusInspection = param.inspeRadius; // radius of 1 meter
+    Period = (2*PI*RadiusInspection)/param.inspeLinVel;
 
 }
 
@@ -415,12 +440,14 @@ if(Inspection)
 if(time > Period){
 	time = 0;	
 	RadiusInspection += 0.5; 
-	Period = (2*PI*RadiusInspection)/params_automatic::inspeLinVel;
+	//Period = (2*PI*RadiusInspection)/params_automatic::inspeLinVel;
+    Period = (2*PI*RadiusInspection)/param.inspeLinVel;
 }
 
 time+=_dt;
 
-_setPoint.setPosition(RadiusInspection * cos((params_automatic::inspeLinVel/RadiusInspection)*time) + X0, RadiusInspection * sin((params_automatic::inspeLinVel/RadiusInspection)*time) + Y0,params_automatic::zMax);
+//_setPoint.setPosition(RadiusInspection * cos((params_automatic::inspeLinVel/RadiusInspection)*time) + X0, RadiusInspection * sin((params_automatic::inspeLinVel/RadiusInspection)*time) + Y0,params_automatic::zMax);
+_setPoint.setPosition(RadiusInspection * cos((param.inspeLinVel/RadiusInspection)*time) + X0, RadiusInspection * sin((param.inspeLinVel/RadiusInspection)*time) + Y0,param.zMax);
 
 std::cout<<"Circ:  "<<_setPoint.getX()<<std::endl;
 std::cout<<"Time: "<<time<<std::endl;
@@ -458,7 +485,8 @@ void Lander::hold() {
 
     updateIntegrals();
     //PosSP = PlatPos + K * Vplat
-    targetVect += params_automatic::KpHoldV * tempVel;
+    //targetVect += params_automatic::KpHoldV * tempVel;
+    targetVect += param.KpHoldV * tempVel;
 
     //Fill right fields
     _setPoint.setPosition(targetVect(0),targetVect(1),_setPoint.getZ());
@@ -498,7 +526,8 @@ void Lander::comp() {
     double z_target_v = _platformState.getVz() - desc;
     double err_v = z_target_v - _state.getVz();
 
-    z_target_v += params_automatic::KPCompV * (err_v);
+    //z_target_v += params_automatic::KPCompV * (err_v);
+    z_target_v += param.KPCompV * (err_v);
 
     //Now we need to transform this velocity in a position setpoint since in Firmware:
     // VelSP = Kp * PosError then PosSP = ( VelSP / Kp ) + RobotPos
@@ -510,7 +539,8 @@ void Lander::comp() {
 void Lander::clampZSP() {
 
     double temp;
-    temp = common::clamp(_setPoint.getZ(),params_automatic::zMin,params_automatic::zMax);
+    //temp = common::clamp(_setPoint.getZ(),params_automatic::zMin,params_automatic::zMax);
+    temp = common::clamp(_setPoint.getZ(),param.zMin,param.zMax);
 
     _setPoint.setZ(temp);
 
@@ -534,6 +564,3 @@ void Lander::allign() {
 
 }
 
-void Lander::loadParam(Parameters *p) {
-
-}

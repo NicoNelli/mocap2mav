@@ -34,7 +34,6 @@ public:
     void setState(MavState pose);
     void handleMachine();
     void updateSignals();
-    void loadParam(Parameters* p);
     int getActualMachineState();
     MavState getState();
     MavState getCommand();
@@ -60,10 +59,11 @@ private:
     MavState _VisionPose;
     MiniPID  _holdPIDX;
     MiniPID  _holdPIDY;
-    Parameters* _param;
 
 private:
 
+    //load parameter
+    Parameters param;
 
     //Create states
     //each states are derived from AbstractLandState class.

@@ -5,81 +5,110 @@
 
 #include "Parameters.h"
 
-Parameters::Parameters(const char* config_file) {
-        loadConfigFile(config_file);
-
-    }
 Parameters::Parameters() {
 
-        //Throw a bunch of default params
-        _ini_loaded = false;
-        //Number of consecutive frames in which tracking is considered valid
-        NFramesHold     = 120;
+    }
 
-        //Number of consecutive frames in which tracking is considered not valid
-        NFramesLost     = 70;
+void Parameters::loadConfigFile(const char *config_file) {
 
-        //Number of consecutive frames in which tracking is considered valid
-        //and robot is ready for compensation
-        NFramesComp     = 20;
+    loadParamFile(config_file);
+    }
 
-        //Platform dimension
-        platformLenght  = 1;
+void Parameters::loadParamFile(const char *config_file) {
 
-        //Max altitude for landing procedure
-        zMax            = 7;
+    
+    std::ifstream cFile (config_file);
+    if( cFile.is_open() ){
 
-        //Minimum altitude for landing procedure (before compensating, this value should be above the maximum platform altitude)
-        zMin            = 4;
+        std::string line;
+        
+        while( getline(cFile, line) ){
+            line.erase( std::remove_if(line.begin(),line.end(), isspace), line.end() );
 
-        //Proportional gain times platform velocity
-        KpHoldV         = 0.9;
+            if( line[0] == '#' || line.empty() ) continue;
 
-        //Proportional gain times horizontal error
-        KpHold          = 1.35; // 0.5
+            auto delimiterPos = line.find("=");
+            std::string param = line.substr(0, delimiterPos);
+            double value = std::stod( line.substr(delimiterPos+1) );
 
-        //Differential gain times horizontal error
-        KdHold          = 0.00;
+            if ( !param.compare("INSPECTION_RADIUS") )
+                inspeRadius = value;
 
-        //Integral gain times integral horizontal error
-        KiHold          = 0.02; //0.1
+            else if( !param.compare("VELOCITY_INSPECTION") )
+                inspeLinVel = value;
+        
+            else if( !param.compare("ROLL_THRESHOLD") )
+                RollThreshold = value;
 
-        //Proportional gain for velocity tracking
-        KPCompV         = 0.1;
+            else if( !param.compare("PITCH_THRESHOLD") )
+                PitchThreshold = value;
 
-        //Integral clamping values
-        maxIntValue     = 5;
-        minIntValue     = -maxIntValue;
+            else if( !param.compare("FRAMES_FOR_HOLDING") )
+                NFramesHold = value;
 
-        //Max total PID output
-        maxOutput       = 10;
+            else if( !param.compare("FRAMES_FOR_LOST") )
+                NFramesLost = value;
+
+            else if( !param.compare("HOLD_THRESHOLD") )
+                hold_threshold = value;
+
+            else if( !param.compare("COMP_THRESHOLD") )
+                comp_threshold = value;
+
+            else if( !param.compare("LOST_THRESHOLD") )
+                lost_threshold = value;
+
+            else if( !param.compare("LAND_THRESHOLD") )
+                land_threshold = value;
+
+            else if( !param.compare("FRAMES_FOR_COMP") )
+                NFramesComp = value;
+
+            else if( !param.compare("PLATFORM_LENGHT") )
+                platformLenght = value;
+
+            else if( !param.compare("MAX_ALTITUDE") )
+                zMax = value;
+
+            else if( !param.compare("MIN_ALTITUDE") )
+                zMin = value;
+
+            else if( !param.compare("KP_HOLD_VEL") )
+                KpHoldV = value;
+
+            else if( !param.compare("KP_HOLD") )
+                KpHold = value;
+
+            else if( !param.compare("KD_HOLD") )
+                KdHold = value;
+
+            else if( !param.compare("KI_HOLD") )
+                KiHold = value;
+
+            else if( !param.compare("KP_COMP_VEL") )
+                KPCompV = value;
+
+            else if( !param.compare("MAX_INT_VALUE") )
+                maxIntValue = value;
+                
+            else if( !param.compare("MIN_INT_VALUE") )
+                minIntValue = value;                    
+
+            else if( !param.compare("MAX_OUTPUT") )
+                maxOutput = value;
+            
+        }
+
+
+
 
     }
-     void Parameters::loadConfigFile(const char *config_file) {
-         _ini_loaded = _ini.load(config_file);
-     }
+    else {
+        std::cerr<<"Not able to open the configuration file"<<std::endl;
+    }
 
 
-    //Read each parameter and store it in a local variable
-    void Parameters::updateParams(){
-        if(_ini_loaded){
-
-            NFramesHold = _ini.getIntValue("NFramesHold");
-            NFramesLost = _ini.getIntValue("NFramesLost");
-            NFramesComp = _ini.getIntValue("NFramesComp");
-            platformLenght = _ini.getDoubleValue("platformLenght");
-            zMax = _ini.getDoubleValue("zMax");
-            zMin = _ini.getDoubleValue("zMin");
-            KpHoldV = _ini.getDoubleValue("KpHoldV");
-            KpHold = _ini.getDoubleValue("KpHold");
-            KdHold = _ini.getDoubleValue("KdHold");
-            KiHold = _ini.getDoubleValue("KiHold");
-            KPCompV = _ini.getDoubleValue("KPCompV");
-            maxIntValue = _ini.getDoubleValue("maxIntValue");
-            minIntValue = -maxIntValue;
-            maxOutput = _ini.getDoubleValue("maxOutput");
-
-        } else
-            std::cout << "Please load a config file" << std::endl;
 
     }
+
+

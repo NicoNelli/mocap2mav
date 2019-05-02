@@ -2,6 +2,8 @@
 // Created by andreanistico on 15/12/17.
 //
 
+
+
 #ifndef MOCAP2MAV_PARAMETERS_H
 #define MOCAP2MAV_PARAMETERS_H
 //
@@ -10,29 +12,39 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
+#include <algorithm>
 #include "rude/config.h"
 
 
 class Parameters {
 
 public:
-    Parameters(const char* config_file);
     Parameters();
-
-private:
-
-    rude::Config _ini;
-    bool _ini_loaded;
 
     void loadConfigFile(const char* config_file);
 
-    //Read each parameter and store it in a local variable
-    void updateParams();
+private:
 
+    bool loaded;
+
+    void loadParamFile(const char* config_file);
 
 public:
 
     //PARAMETERS FIELDS
+    
+    //init value of radius for inspection
+    double inspeRadius;
+
+    //linear velocity of the drone during inspection
+    double inspeLinVel;
+
+    //roll upper limit to land
+    double RollThreshold;
+
+    //pitch upper limit to land
+    double PitchThreshold;
 
     //Number of consecutive frames in which tracking is considered valid
     int    NFramesHold;
@@ -47,6 +59,17 @@ public:
     //Platform dimension
     double platformLenght;
 
+    //horizontal error allowed during holding phase
+    double hold_threshold;
+
+    //horizontal error allowed during compensation phase
+    double comp_threshold;
+
+    //vertical error allowed
+    double lost_threshold;
+
+    //switch off the motors
+    double land_threshold;
     //Max altitude for landing procedure
     double zMax;
 
@@ -78,3 +101,5 @@ public:
 };
 
 #endif //MOCAP2MAV_PARAMETERS_H
+
+    

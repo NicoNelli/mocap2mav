@@ -8,6 +8,7 @@
 #include <iostream>
 #include "StateMachine/include/Machine.h"
 #include "common/MavState.h"
+#include "Parameters.h"
 
 
 class LandMachine : public Machine {
@@ -24,7 +25,9 @@ public:
     MavState *_state;
     MavState *_setPoint;
     MavState *_VisionPose;
+    
     //New Signals
+    Parameters *param;
     bool *_holding;
     bool *_lost;
     bool *_centered;
@@ -68,6 +71,8 @@ public:
          _state        = *(_contextL->_state);
          _setPoint     = *(_contextL->_setPoint);
          _VisionPose   = *(_contextL->_VisionPose);
+         param         = *(_contextL->param);
+
         //New Signals
         _holding       = *(_contextL->_holding);
         _centered      = *(_contextL->_centered);
@@ -93,6 +98,7 @@ protected:
     MavState _VisionPose;
     LandMachine* _contextL;
 
+    Parameters param;
     //New Signals
     bool _centered;
     bool _holding;

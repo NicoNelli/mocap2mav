@@ -68,11 +68,9 @@ int main(int argc, char** argv){
 	
 	while(0==handler.handle()){
 
-	//if( !visionSystem.VisionDataUpdated)//&& !(printAction(autom._actualTask.action).compare("Take off")) )
-	//{
-	autom.setState(call._vision_pos); //fill the state of the UAV in the automatic class
-    lander.setState(call._vision_pos); 
-	//}
+		autom.setState(call._vision_pos); //fill the state of the UAV in the automatic class
+    	lander.setState(call._vision_pos); 
+
 
 		int ret = poll(fds,3,0);
 

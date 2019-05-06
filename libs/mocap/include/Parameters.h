@@ -33,7 +33,9 @@ private:
 public:
 
     //PARAMETERS FIELDS
-    
+    //if it's 1 ==> inspection, otherwise it implements an homing action.
+    bool search;
+
     //init value of radius for inspection
     double inspeRadius;
 

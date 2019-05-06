@@ -15,18 +15,33 @@ void InitState::handle(){
     //Wait 20 iterations
     if(wait++ > 20 && _VisionPose.VisionDataUpdated) {
 
-        this->_contextL->setStatePtr(_nextState);
+        this->_contextL->setStatePtr(_nextState); //set next state (HoldState)
         printStateTransition(); //print the actual state.
     }
     else if(!_VisionPose.VisionDataUpdated){
-        this->_contextL->setStatePtr(_nextInspeState);
-        printStateTransition(); //print the actual state.
+
+        if(param.search){
+            this->_contextL->setStatePtr(_nextInspeState);
+            printStateTransition(); //print the actual state.
+        }
+        else{
+            this->_contextL->setStatePtr(_nextHomingState);
+            printStateTransition(); //print the actual state.
+        }
 
     }
 
 }
 
 void InspectionState::handle() {
+    getSignals();
+
+    if(_VisionPose.VisionDataUpdated)
+        this->_contextL->setStatePtr(_nextState); //set next state (InitState)
+        printStateTransition();
+}
+
+void HomingState::handle() {
     getSignals();
 
     if(_VisionPose.VisionDataUpdated)

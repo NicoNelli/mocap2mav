@@ -49,6 +49,14 @@ public:
     double RadiusInspection;
     double Period;
 
+    //used to implement an hovering action for homing
+    double starting_x;
+    double starting_y;
+    double starting_z;
+    bool _home;
+
+
+
 private:
 
     LandMachine  _machine; //derived from machine one.
@@ -69,14 +77,15 @@ private:
     //each states are derived from AbstractLandState class.
     //The class AbstractLandState is derived from AbstractState.
 
-    InitState       _initS; //its constructor set its ID to INIT
-    HoldState       _holdS; //its constructor set its ID to HOLD
-    AsceState       _asceS; //its constructor set its ID to ASCE
-    DescState       _descS; //its constructor set its ID to DESC
-    RToLandState    _rtolS; //its constructor set its ID to R2LA
-    CompState       _compS; //its constructor set its ID to COMP
-    LandState       _landS; //its constructor set its ID to LAND
-    InspectionState _inspeS; //its constructor set its ID to INSPE
+    InitState       _initS;     //its constructor set its ID to INIT
+    HoldState       _holdS;     //its constructor set its ID to HOLD
+    AsceState       _asceS;     //its constructor set its ID to ASCE
+    DescState       _descS;     //its constructor set its ID to DESC
+    RToLandState    _rtolS;     //its constructor set its ID to R2LA
+    CompState       _compS;     //its constructor set its ID to COMP
+    LandState       _landS;     //its constructor set its ID to LAND
+    InspectionState _inspeS;    //its constructor set its ID to INSPE
+    HomingState     _homingS;   //its constructor set its ID to HOMING
 
     int _actualState;
     int _prevState;
@@ -135,6 +144,8 @@ private:
     //circular trajectory for inspection. It tries with a circular 
     //trajectory to find the platform
     void inspection();
+    //homing position action
+    void homing();
 
     void initInspection(); //initialise variables to perform inspection 
 

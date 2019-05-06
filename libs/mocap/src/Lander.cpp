@@ -11,7 +11,7 @@
 Lander::Lander()
         : _horizontaErr((double)0)    , _tauHold((double)0), _tauLost((double)0), _tauErr((double)0), _NHold(0),
           _NLost(0),_NComp(0), _initS(&_machine), _holdS(&_machine)  , _asceS(&_machine)  , _descS(&_machine),_compS(&_machine),
-          _rtolS(&_machine),_landS(&_machine),_inspeS(&_machine), _err(0,0,0), _err_int(0,0,0), _err_diff(0,0,0), _dt(0), _prevTime(0), _actualTime(0),
+          _rtolS(&_machine),_landS(&_machine),_inspeS(&_machine),_homingS(&_machine), _err(0,0,0), _err_int(0,0,0), _err_diff(0,0,0), _dt(0), _prevTime(0), _actualTime(0),
           _actualState(0),_prevState(0), _verticalErr(0), _holdPIDX(0,0,0), _holdPIDY(0,0,0)
 {
 
@@ -34,15 +34,12 @@ Lander::Lander()
     //set the actual state of the machine, intially is is INIT
 
     _err_prev = _err;
-    
-    //_holdPIDX.setMaxIOutput(params_automatic::maxIntValue);
-    //_holdPIDY.setMaxIOutput(params_automatic::maxIntValue);
+
     
     _holdPIDX.setMaxIOutput(param.maxIntValue);
     _holdPIDY.setMaxIOutput(param.maxIntValue);
     //put a saturation for the integral part of the PID
 
-    //_holdPIDX.setOutputLimits(params_automatic::maxOutput);
     _holdPIDX.setOutputLimits(param.maxOutput);
     //put a saturation for the whole PID
 }
@@ -61,8 +58,15 @@ MavState Lander::getCommand() {
 
 void Lander::initStateMachine() {
 
-	Inspection = true;
+	Inspection = false;
+    
     switchSensor = false;
+
+    //stored starting local position
+    starting_x = _state.getX();
+    starting_y = _state.getY();
+    starting_z = _state.getZ();
+    _home = false;
 
     //Link signals
     //assign initialized errors of the Lander class with
@@ -87,32 +91,33 @@ void Lander::initStateMachine() {
     //Link states
     //keep in mind that _nextState object is inherited from the AbstractLandState class.
     //the following instructions set the machine state.
-    _initS._nextState    = &_holdS;
-	_initS._nextInspeState 	 = &_inspeS;
+    _initS._nextState       = &_holdS;
+	_initS._nextInspeState  = &_inspeS;
+    _initS._nextHomingState = &_homingS;
 
-	_inspeS._nextState = &_initS;
+	_inspeS._nextState      = &_initS;
     
-    _holdS._nextAscState = &_asceS;
-    _holdS._nextDesState = &_descS;
-    _holdS._nextState    = &_rtolS;
-    _holdS._nextInitState = &_initS;
+    _homingS._nextState     = &_initS;
 
-    _asceS._nextState    = &_holdS;
+    _holdS._nextAscState    = &_asceS;
+    _holdS._nextDesState    = &_descS;
+    _holdS._nextState       = &_rtolS;
+    _holdS._nextInitState   = &_initS;
 
-    _descS._nextState    = &_holdS;
+    _asceS._nextState       = &_holdS;
 
-    _rtolS._nextComState = &_compS;
-    _rtolS._nextState    = &_holdS;
+    _descS._nextState       = &_holdS;
 
-    _compS._nextState    = &_asceS;
-    _compS._nextLanState = &_landS;
+    _rtolS._nextComState    = &_compS;
+    _rtolS._nextState       = &_holdS;
 
-    _landS._nextState    = &_asceS;
+    _compS._nextState       = &_asceS;
+    _compS._nextLanState    = &_landS;
+
+    _landS._nextState       = &_asceS;
 
     _machine.setStatePtr(&_initS); //set the state with the INIT one.
 
-    //_tauHold = 0.5 * params_automatic::platformLenght;
-    //_tauLost = params_automatic::platformLenght * 0.7;
     _tauHold = param.hold_threshold;
     _tauLost = param.lost_threshold;
     //this two parameters are thresholds for the horizontal error.
@@ -136,6 +141,12 @@ void Lander::setVisionPose(const MavState VisionPose) {
 
 
 void Lander::updateSignals() {
+
+    if(_VisionPose.VisionDataUpdated){
+        Inspection = false;
+        _home = false;
+    }    
+
 
     double dx;
     double dy;
@@ -176,20 +187,18 @@ void Lander::updateSignals() {
     }
 
     if( switchSensor ) { //in this condition is also taken into account the update vision data 
-        //_holding  = (_NHold > params_automatic::NFramesHold && _VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered valid.
+
         _holding  = (_NHold > param.NFramesHold && _VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered valid.
 
-        //_lost     = (_NLost > params_automatic::NFramesLost || !_VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered not valid.
         _lost     = (_NLost > param.NFramesLost || !_VisionPose.VisionDataUpdated );//Number of consecutive frames in which tracking is considered not valid.
 
         _centered = (_horizontaErr < _tauHold * 0.5 && _VisionPose.VisionDataUpdated );
     
     }
     else{
-        //_holding  = (_NHold > params_automatic::NFramesHold );//Number of consecutive frames in which tracking is considered valid.
+
         _holding  = (_NHold > param.NFramesHold );//Number of consecutive frames in which tracking is considered valid.
 
-        //_lost     = (_NLost > params_automatic::NFramesLost );//Number of consecutive frames in which tracking is considered not valid.
         _lost     = (_NLost > param.NFramesLost );//Number of consecutive frames in which tracking is considered not valid.
 
         _centered = (_horizontaErr < param.comp_threshold );
@@ -283,28 +292,33 @@ void Lander::run() {
     managetime();
 
     static bool initDone = false;
+
     switch (_actualState){
 
         case (AbstractLandState::states::INIT):
+            
             if(!initDone){
            		std::cout<<"INIT"<<std::endl;
-				init();
-                /*
-                it is divided in two parts:
-                    --set the setpoint to the relative position
-                    --set the z axis to the max one 7 meters.
-                */
-                //initDone = true;
+				
+                init();
+               
             	initDone = _VisionPose.VisionDataUpdated;
-            	if(_VisionPose.VisionDataUpdated)
-            		Inspection = true;
-
+            	
             }
+
             break;
+
         case (AbstractLandState::states::INSPE):
             std::cout<<"INSPE"<<std::endl;
 
             inspection();
+
+            break;
+
+        case (AbstractLandState::states::HOMING):
+            std::cout<<"HOMING"<<std::endl;
+
+            homing();
 
             break;    
 
@@ -377,8 +391,7 @@ void Lander::updateIntegrals() {
 
     double tempx,tempy;
 
-    //tempx = common::clamp(_err_int[0],params_automatic::minIntValue,params_automatic::maxIntValue);
-    //tempy = common::clamp(_err_int[1],params_automatic::minIntValue,params_automatic::maxIntValue);
+
     tempx = common::clamp(_err_int[0],param.minIntValue,param.maxIntValue);
     tempy = common::clamp(_err_int[1],param.minIntValue,param.maxIntValue);
 
@@ -421,10 +434,8 @@ void Lander::initInspection() {
 	time = 0;
 	X0 = _state.getX();
 	Y0 = _state.getY();
-	Inspection = false;
+	Inspection = true;
 	
-	//RadiusInspection = params_automatic::inspeRadius; // radius of 1 meter
-	//Period = (2*PI*RadiusInspection)/params_automatic::inspeLinVel;
     RadiusInspection = param.inspeRadius; // radius of 1 meter
     Period = (2*PI*RadiusInspection)/param.inspeLinVel;
 
@@ -433,26 +444,35 @@ void Lander::initInspection() {
 void Lander::inspection() {
 //This function implements a circular trajectory
 
-if(Inspection)
-	initInspection();
+    if(!Inspection)
+        initInspection();
 
 
-if(time > Period){
-	time = 0;	
-	RadiusInspection += 0.5; 
-	//Period = (2*PI*RadiusInspection)/params_automatic::inspeLinVel;
-    Period = (2*PI*RadiusInspection)/param.inspeLinVel;
-}
+    if(time > Period){
+        time = 0;	
+        RadiusInspection += 0.5; 
+        Period = (2*PI*RadiusInspection)/param.inspeLinVel;
+    }
 
 time+=_dt;
 
-//_setPoint.setPosition(RadiusInspection * cos((params_automatic::inspeLinVel/RadiusInspection)*time) + X0, RadiusInspection * sin((params_automatic::inspeLinVel/RadiusInspection)*time) + Y0,params_automatic::zMax);
 _setPoint.setPosition(RadiusInspection * cos((param.inspeLinVel/RadiusInspection)*time) + X0, RadiusInspection * sin((param.inspeLinVel/RadiusInspection)*time) + Y0,param.zMax);
 
 std::cout<<"Circ:  "<<_setPoint.getX()<<std::endl;
 std::cout<<"Time: "<<time<<std::endl;
 
 _setPoint.setType(MavState::POSITION);
+
+}
+
+void Lander::homing(){
+
+    if(!_home){
+        _setPoint.setX(starting_x);
+        _setPoint.setY(starting_y);
+        _setPoint.setType(MavState::POSITION);
+        _home = true;
+    }
 
 }
 

@@ -43,6 +43,7 @@ public:
 
         INIT,
         INSPE,
+        HOMING,
         HOLD,
         DESC,
         ASCE,
@@ -110,6 +111,8 @@ protected:
 class InitState : public AbstractLandState {
 public:
     AbstractLandState* _nextInspeState;
+    AbstractLandState* _nextHomingState;
+
     InitState(LandMachine *context) :  AbstractLandState(context){
         setId();
     }
@@ -130,6 +133,20 @@ public:
     void setId() override {
 
         _id = INSPE;
+
+    }
+    void handle();
+};
+
+class HomingState : public AbstractLandState {
+public:
+
+    HomingState(LandMachine *context) :  AbstractLandState(context){
+        setId();
+    }
+    void setId() override {
+
+        _id = HOMING;
 
     }
     void handle();

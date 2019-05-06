@@ -31,6 +31,9 @@ void Parameters::loadParamFile(const char *config_file) {
             std::string param = line.substr(0, delimiterPos);
             double value = std::stod( line.substr(delimiterPos+1) );
 
+            if ( !param.compare("SEARCH") )
+                search = value;
+
             if ( !param.compare("INSPECTION_RADIUS") )
                 inspeRadius = value;
 

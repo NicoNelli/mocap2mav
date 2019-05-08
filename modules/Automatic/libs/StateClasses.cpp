@@ -3,7 +3,7 @@
 //
 
 #include "include/Lander/StatesClasses.hpp"
-#include "parameters.h"
+#include "param.h"
 //Define actual states
 
 void InitState::handle(){
@@ -14,12 +14,33 @@ void InitState::handle(){
     static int wait = 0;
 
     //Wait 100 iterations
-    if(wait++ > 50 && _VisionPose.VisionDataUpdated) {
+    if( wait++ > 50 && _VisionPose.VisionDataUpdated ) {
         this->_contextL->setStatePtr(_nextState);
         printStateTransition(); //print the actual state 
         wait=0;
     }
+	else if( !_VisionPose.VisionDataUpdated ) {
+		
+		this->_contextL->setStatePtr(_nextHoveringState);
+        printStateTransition(); //print the actual state 
+	}
+
+
 }
+
+void HoveringState::handle() {
+	
+	getSignals();
+
+	if( _VisionPose.VisionDataUpdated ) {
+        this->_contextL->setStatePtr(_nextState);
+        printStateTransition(); //print the actual state 
+    }
+
+}
+
+
+
 void HoldState::handle(){
 
     //copy the values of the LandMachine class into the ones of the AbstractLandState class.
@@ -29,21 +50,21 @@ void HoldState::handle(){
     //before compensation, this value should be above the minimum platform value.
     //descending phase is valid if the horizontal error is under a given treshold and z distance above zMin.
     
-    bool descValid = _holding && (_setPoint.getZ()   > params_automatic::zMin + 0.1);
+    bool descValid = _holding && (_setPoint.getZ()   > param.zMin + 0.1);
 	
 	//if the  vision data are not available and the drone reaches the max height coming back to the initState
 
-    bool InitValid = !_VisionPose.VisionDataUpdated && !(_setPoint.getZ()  < params_automatic::zMax - 0.1);	
+    bool InitValid = !_VisionPose.VisionDataUpdated && !(_setPoint.getZ()  < param.zMax - 0.1);	
 	//std::cout<<"InitValid: "<<InitValid<<std::endl;
 
     //coming up if the platform is lost and the z distance is under zMax
 	
-	bool asceValid = _lost    && (_setPoint.getZ()   < params_automatic::zMax - 0.1);
+	bool asceValid = _lost    && (_setPoint.getZ()   < param.zMax - 0.1);
 	
     //comp is a middle state between land state and hold state.
     //if the UAV is holding ad is centered on the platform and is close to the platform(20 cm), will be accomplish.
 	
-    bool compValid = _holding && (fabs(_state.getZ() - params_automatic::zMin) < 0.2) && _centered;
+    bool compValid = _holding && (fabs( _UltraInfo.getZ() + param.zMin) < 0.2 ) && _centered;
 
 
     if(descValid){
@@ -94,7 +115,7 @@ void CompState::handle() {
     and robot is ready for compensation.
     */
 
-    bool onTarget = _NComp > params_automatic::NFramesComp;
+    bool onTarget = _NComp > param.NFramesComp;
 
     if (!onTarget || !_centered){ 
         //if is not on the target or if is not centered..coming back!
@@ -108,7 +129,7 @@ void CompState::handle() {
         this->_contextL->setStatePtr(_nextState); //set the next state(AsceState)
         printStateTransition();
     
-	}else if ( fabs(_VisionPose.getRoll()) > params_automatic::RollThreshold || fabs(_VisionPose.getPitch()) > params_automatic::PitchThreshold ){
+	}else if ( fabs(_VisionPose.getRoll()) > param.RollThreshold || fabs(_VisionPose.getPitch()) > param.PitchThreshold ){
 
 		this->_contextL->setStatePtr(_nextState); //set the next state(AsceState)
         printStateTransition();
@@ -116,9 +137,9 @@ void CompState::handle() {
 	}
 
 
-   std::cout << "VERRRRRRRR: " << _verticalErr << std::endl;
+  // std::cout << "VERRRRRRRR: " << _verticalErr << std::endl;
 
-    if(onTarget && _centered && (fabs(_verticalErr) < 0.25)){
+    if(onTarget && _centered && (fabs(_verticalErr) < param.land_threshold)){
 	   //if is on the target and is centered and the vertical error is under 25cm, set next state to LandState.
 
         this->_contextL->setStatePtr(_nextLanState);
@@ -130,7 +151,7 @@ void CompState::handle() {
 void RToLandState::handle() {
 
     getSignals();
-    if (_NComp > params_automatic::NFramesComp){
+    if (_NComp > param.NFramesComp){
         this->_contextL->setStatePtr(_nextComState); //set the next state(CompState)
         printStateTransition();
         return;
@@ -146,7 +167,7 @@ void LandState::handle() {
 
     getSignals();
     static int wait = 0;
-    bool onTarget = _NComp > params_automatic::NFramesComp;
+    bool onTarget = _NComp > param.NFramesComp;
 
     if (!onTarget || !_centered){ //set the next state(AsceState)
         //this->_contextL->setStatePtr(_nextState);

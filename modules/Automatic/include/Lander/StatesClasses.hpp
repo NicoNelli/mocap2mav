@@ -1,6 +1,4 @@
-//
-// Created by andreanistico on 08/02/17.
-//
+
 
 #ifndef MOCAP2MAV_STATESCLASSES_HPP
 #define MOCAP2MAV_STATESCLASSES_HPP
@@ -8,6 +6,7 @@
 #include <iostream>
 #include "StateMachine/include/Machine.h"
 #include "common/MavState.h"
+#include "Parameters.h"
 
 /** @ingroup Automatic
  * @brief Derived class of the Machine one.
@@ -115,6 +114,8 @@ public:
 
     bool *_centered;
 
+	Parameters *param;
+
 };
 
 /** @ingroup Automatic
@@ -143,6 +144,7 @@ public:
     enum states{
 
         INIT,
+		HOVERING,
         HOLD,
         DESC,
         ASCE,
@@ -183,7 +185,7 @@ public:
          _setPoint     = *(_contextL->_setPoint);
 		 _VisionPose   = *(_contextL->_VisionPose);
 		 _UltraInfo    = *(_contextL->_UltraInfo);		
-        
+         param         = *(_contextL->param);
 		//New Signals
         _holding       = *(_contextL->_holding);
         _centered      = *(_contextL->_centered);
@@ -297,6 +299,9 @@ protected:
      */
 
     bool _lost;
+
+	Parameters param;
+
 };
 
 /** @ingroup Automatic
@@ -309,6 +314,8 @@ protected:
 class InitState : public AbstractLandState {
 
 public:
+
+	AbstractLandState* _nextHoveringState;
     
     /**
      * @brief Constructor of the derived class
@@ -337,6 +344,43 @@ public:
 
     void handle();
 };
+
+/** @ingroup Automatic
+ * @brief Derived class of the AbstractLandState
+ * Such class represents the hovering state.
+ * This state will be linked with the LandMachine class via
+ * the protected member of the AbstractLandState class(_contextL)
+ */
+
+class HoveringState : public AbstractLandState {
+
+public:
+	
+	HoveringState(LandMachine *context) : AbstractLandState(context) {
+        setId();
+    }
+
+	/**
+     * @brief It sets the ID to the HOVERING one
+     */
+
+    void setId() override {
+
+        _id = HOVERING;
+    }
+
+    /**
+     * @brief Such method allows to check the current state of the drone
+     * and it allows to set the next state of the land state machine.
+     * @details In this case, the handle() method for Hovering sets the next
+     * state of the machine to the init one; the hovering() method has been performed.
+     */
+    
+    void handle();
+
+
+};
+
 
 /** @ingroup Automatic
  * @brief Derived class of the AbstractLandState

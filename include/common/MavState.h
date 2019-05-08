@@ -86,6 +86,8 @@ public:
 
 	    this->VisionDataUpdated = m.VisionDataUpdated;
 
+        this->isValid = m.isValid;
+
         this->setRoll(m.getRoll());
 
         this->setPitch(m.getPitch());
@@ -97,7 +99,7 @@ public:
     //to check if visionData are updated.
     bool VisionDataUpdated;
 
-
+    bool isValid;
 private:
 
     double _x;

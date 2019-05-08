@@ -107,6 +107,7 @@ public:
 
         _vision_pos.setOrientation((double)msg->orientation[0],(double)msg->orientation[1],(double)msg->orientation[2],(double)msg->orientation[3]);
 
+		_vision_pos.IsValid = (bool)msg->isValid;
 
         if (msg->type == 0){
             _vision_pos.setType(MavState::type::POSITION);

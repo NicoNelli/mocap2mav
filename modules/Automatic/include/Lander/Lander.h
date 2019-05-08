@@ -10,6 +10,7 @@
 #include "StatesClasses.hpp"
 #include "common/common.h"
 #include "miniPID/MiniPID.h"
+#include "Parameters.h"
 
 #define DEBUG
 #define PI              3.141592653589
@@ -83,6 +84,18 @@ public:
      */
 
     void handleMachine();
+	
+	/**
+     * @brief It loads the new machine updating the parameter list
+     */
+
+	void loadMachine();
+
+	/**
+     * @brief It prints state machine signals
+     */
+
+	void printSignals();
 
     /**
      * @brief It computes the horizontal and vertical error of the drone,
@@ -125,6 +138,48 @@ public:
      */
 
     bool switchSensor; 
+
+	/**
+     * The following variables are used to implement an hovering action:
+     */
+	
+	/**
+     * X hovering coordinate.
+     */
+
+	double starting_x;
+
+	/**
+     * Y hovering coordinate.
+     */
+
+	double starting_y;
+
+	/**
+     * Z hovering coordinate.
+     */
+
+	double starting_z;
+
+	/**
+     * To check if the state is set to hovering
+     */
+
+	bool _hovering;
+
+	/**
+     * To check if the machine has been reset
+     */
+
+	bool _resetMachine;
+
+	/**
+     * To print signals every seconds
+     */
+
+	int print;
+
+	double desc_velocity;
 
 private:
 
@@ -176,6 +231,11 @@ private:
 
 private:
 
+	/**
+	 * Load parameters
+	 */
+	Parameters param;
+
     /**
      *  Init state of the machine linked to the hold state
      */
@@ -217,6 +277,12 @@ private:
      */
 
     LandState       _landS;
+
+	/**
+     * state for hovering action
+     */
+
+	HoveringState _hoveringS;
 
     /**
      * Actual state of the machine state
@@ -425,6 +491,13 @@ private:
      */
     
     void land();
+
+	/**
+     * @brief Hovering action
+     */
+
+	void hovering();
+	
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

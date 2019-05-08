@@ -5,23 +5,54 @@
 #include <iostream>
 #include "include/Lander/StatesClasses.hpp"
 #include "Lander/Lander.h"
-#include "parameters.h"
+#include "param.h"
 
 Lander::Lander()
         : _horizontaErr((double)0)    , _tauHold((double)0), _tauLost((double)0), _tauErr((double)0), _NHold(0),
-          _NLost(0),_NComp(0), _initS(&_machine), _holdS(&_machine)  , _asceS(&_machine)  , _descS(&_machine),_compS(&_machine),
+          _NLost(0),_NComp(0) , _initS(&_machine) , _hoveringS(&_machine) , _holdS(&_machine)  , _asceS(&_machine)  , _descS(&_machine),_compS(&_machine),
           _rtolS(&_machine),_landS(&_machine), _err(0,0,0), _err_int(0,0,0), _err_diff(0,0,0), _dt(0), _prevTime(0), _actualTime(0),
-          _actualState(0),_prevState(0), _verticalErr(0), _holdPIDX(params_automatic::KpHold,params_automatic::KiHold,params_automatic::KdHold),
-          _holdPIDY(params_automatic::KpHold,params_automatic::KiHold,params_automatic::KdHold)
+          _actualState(0),_prevState(0), _verticalErr(0), _holdPIDX(0,0,0),
+          _holdPIDY(0,0,0)
 {
 
-    initStateMachine();
-    _actualState = _machine.getActualNodeId();
-    _err_prev = _err;
-    _holdPIDX.setMaxIOutput(params_automatic::maxIntValue);
-    _holdPIDY.setMaxIOutput(params_automatic::maxIntValue);
+	param.loadConfigFile("Landing_params.txt");
 
-    _holdPIDX.setOutputLimits(params_automatic::maxOutput);
+	//std::cout<<"Params: "<<param.zMax<<std::endl;
+	
+	desc_velocity = 0;	
+
+	_holdPIDX.reset();
+	_holdPIDY.reset();
+
+	_holdPIDX.setP(param.KpHold);
+	_holdPIDX.setI(param.KiHold);
+	_holdPIDX.setD(param.KdHold);
+
+	_holdPIDY.setP(param.KpHold);
+	_holdPIDY.setI(param.KiHold);
+	_holdPIDY.setD(param.KdHold);
+
+    _err_prev = _err;
+    
+	
+	_holdPIDX.setMaxIOutput(param.maxIntValue);
+    _holdPIDY.setMaxIOutput(param.maxIntValue);
+
+    _holdPIDX.setOutputLimits(param.maxOutput);
+
+	_tauHold = param.hold_threshold;	
+	_tauLost = param.lost_threshold;
+
+	//stored starting hovering position
+	starting_x = _state.getX();
+	starting_y = _state.getY();
+	starting_z = _state.getZ();
+
+	_hovering = false;
+	
+	initStateMachine();
+
+	_actualState = _machine.getActualNodeId();
 
 }
 
@@ -37,7 +68,63 @@ MavState Lander::getCommand() {
     return _setPoint;
 }
 
+void Lander::loadMachine() {
+
+	param.loadConfigFile("Landing_params.txt");
+
+	_holdPIDX.reset();
+	_holdPIDY.reset();
+
+	_holdPIDX.setP(param.KpHold);
+	_holdPIDX.setI(param.KiHold);
+	_holdPIDX.setD(param.KdHold);
+
+	_holdPIDY.setP(param.KpHold);
+	_holdPIDY.setI(param.KiHold);
+	_holdPIDY.setD(param.KdHold);
+    
+	_holdPIDX.setMaxIOutput(param.maxIntValue);
+    _holdPIDY.setMaxIOutput(param.maxIntValue);
+
+    _holdPIDX.setOutputLimits(param.maxOutput);
+
+	_tauHold = param.hold_threshold;	
+	_tauLost = param.lost_threshold;
+
+	//stored starting hovering position
+	starting_x = _state.getX();
+	starting_y = _state.getY();
+	starting_z = _state.getZ();
+
+	_hovering = false;
+
+}
+
 void Lander::initStateMachine() {
+
+	print = 0;
+
+	_resetMachine = false;
+
+	_horizontaErr = (double)0;
+	_tauHold      = (double)0;
+	_tauLost      = (double)0;
+	_tauErr       = (double)0;	
+
+	_NHold = 0;
+	_NLost = 0;
+	_NComp = 0;
+
+	_err << 0,0,0;
+	_err_int << 0,0,0;
+	_err_diff << 0,0,0;
+
+	_dt 		 = 0;
+	_prevTime    = 0;
+	_actualTime  = 0;
+	_verticalErr = 0;
+	_actualState = 0;
+	_prevState   = 0;
 
     //Link signals
     _machine._horizontaErr =  &_horizontaErr;
@@ -51,8 +138,10 @@ void Lander::initStateMachine() {
     _machine._state        =  &_state;
     _machine._setPoint     =  &_setPoint;
     _machine._VisionPose   =  &_VisionPose;
-	_machine._UltraInfo    = &_UltraInfo;
-    //New signals
+	_machine._UltraInfo    =  &_UltraInfo;
+    
+	_machine.param		   =  &param;
+	//New signals
     _machine._holding      =  &_holding;
     _machine._centered     =  &_centered;
     _machine._lost         =  &_lost;
@@ -60,7 +149,9 @@ void Lander::initStateMachine() {
 
     //Link states
     _initS._nextState    = &_holdS;
+	_initS._nextHoveringState = &_hoveringS;
 
+	_hoveringS._nextState = &_initS;
 
     _holdS._nextAscState = &_asceS;
     _holdS._nextDesState = &_descS;
@@ -81,10 +172,7 @@ void Lander::initStateMachine() {
     _landS._nextState    = &_asceS;
     _landS._restartState = &_initS;
 
-    _machine.setStatePtr(&_initS); //set the state with the INIT one.
-
-    _tauHold = 0.5 * params_automatic::platformLenght;
-    _tauLost = params_automatic::platformLenght * 0.7;
+    _machine.setStatePtr(&_initS); //set the state with the INIT one.    
 
     //Print actual state
     std::cout << "Actual state: " << _machine.getActualNodeId() << std::endl;
@@ -107,6 +195,11 @@ void Lander::setUltrasonicInfo(const MavState UltraInfo) {
 
 void Lander::updateSignals() {
 
+	if( _VisionPose.VisionDataUpdated ){
+		_hovering = false;
+	}
+
+
 	double dx;
 	double dy;
 	double dz;
@@ -114,7 +207,7 @@ void Lander::updateSignals() {
     //above half meters use vision system for altitude value
     //otherwise, ultrasonic sensors.
 
-	switchSensor = (fabs( _VisionPose.getZ() ) > 0.5); //with 0.1 always vision:) 	
+	switchSensor = (fabs( _VisionPose.getZ() ) > 0.6); //with 0.1 always vision:) 	
 
 	
     if( switchSensor )
@@ -146,12 +239,12 @@ void Lander::updateSignals() {
         _NLost++;
     }
 
-	_holding  = (_NHold > params_automatic::NFramesHold && _VisionPose.VisionDataUpdated ); 
+	_holding  = (_NHold > param.NFramesHold && _VisionPose.VisionDataUpdated ); 
 
-    _lost     = (_NLost > params_automatic::NFramesLost || !_VisionPose.VisionDataUpdated ); 
+    _lost     = (_NLost > param.NFramesLost || !_VisionPose.VisionDataUpdated ); 
 
-    _centered = _horizontaErr < _tauHold * 0.5 && _VisionPose.VisionDataUpdated;
-
+    //_centered = _horizontaErr < _tauHold * 0.5 && _VisionPose.VisionDataUpdated;
+    _centered = _horizontaErr < param.comp_threshold && _VisionPose.VisionDataUpdated;
 
     //R2LA state is between hold and comp state    
     if(_actualState == AbstractLandState::states::R2LA || _actualState == AbstractLandState::states::COMP || _actualState == AbstractLandState::states::LAND){
@@ -179,8 +272,13 @@ void Lander::updateSignals() {
 
     _err_prev = _err;
 
-#ifdef DEBUG
+}
 
+void Lander::printSignals() {
+
+	#ifdef DEBUG
+    std::cout<<"Descending velocity: "<<desc_velocity<<std::endl;
+    std::cout<<"Altezza: "<<param.zMax<<std::endl;
     std::cout << "**********************************" << std::endl;
     std::cout << "STATE: " << _actualState<< std::endl;
     std::cout << "HERRO: " << _horizontaErr<< std::endl;
@@ -204,12 +302,29 @@ void Lander::updateSignals() {
     std::cout << "**********************************" << std::endl;
 #endif
 
-
 }
 
 void Lander::handleMachine() {
 
-    /*
+
+	//isValid = 1 ==> OFFBOARD
+	//isValid = 0 ==> ANOTHER FLIGHT MODE
+	if( !_state.IsValid && !_resetMachine ) {
+		
+		initStateMachine();
+		_resetMachine = true;
+	}
+	else if( _state.IsValid ) { //OFFBOARD
+		
+		if(_resetMachine) {
+			loadMachine();
+			_resetMachine = false;			
+		}
+
+
+    updateSignals();
+
+	/*
     --computes the horizontal and vertical error of the actual state
     
     --check if the horizontal error is under a given threshold(_tauHold and _tauLost)
@@ -220,13 +335,13 @@ void Lander::handleMachine() {
     --if the UAV is centered the variable NComp is incremented.
     */
 
-    updateSignals();
-
-    //Being such function vrtual, will be defined by its derived classes.
-    //Depending on the actual state a different function is called.
 
     _machine.handle(); 
-	
+	 //Being such function vrtual, will be defined by its derived classes.
+    //Depending on the actual state a different function is called.
+
+}
+
 }
 
 int Lander::getActualMachineState() {
@@ -236,6 +351,8 @@ int Lander::getActualMachineState() {
 void Lander::run() {
 
     //set the previous state with the actual one, initially is INIT.
+   print++;
+
 
     _prevState = _actualState; 
     handleMachine();
@@ -248,7 +365,10 @@ void Lander::run() {
 
         case (AbstractLandState::states::INIT):
             if(!initDone){
-				std::cout<<"INIT"<<std::endl;                
+				
+				if( print>30 )		
+					std::cout<<"INIT"<<std::endl;                
+		
 				init(); 
                 _NHold=0;
                 _NComp=0;
@@ -266,8 +386,19 @@ void Lander::run() {
             }
             break;
 
+		case ( AbstractLandState::states::HOVERING):
+			
+			if( print>30 )
+				std::cout<<"HOVERING"<<std::endl;
+
+			//hovering();
+
+			break;
+
         case (AbstractLandState::states::HOLD):
-			std::cout<<"HOLD"<<std::endl;			
+			
+			if( print>30 )			
+				std::cout<<"HOLD"<<std::endl;			
        
 			initDone = false;
 
@@ -281,14 +412,18 @@ void Lander::run() {
 					
             break;
         case (AbstractLandState::states::DESC):
-			std::cout<<"DESC"<<std::endl;
+
+			if( print>30 )
+				std::cout<<"DESC"<<std::endl;
 
             desc();
             clampZSP();
             
             break;
         case (AbstractLandState::states::ASCE):
-			std::cout<<"ASCE"<<std::endl;
+			
+			if( print>30 )
+				std::cout<<"ASCE"<<std::endl;
 
             asce();
             clampZSP();
@@ -296,7 +431,9 @@ void Lander::run() {
             break;
 
         case (AbstractLandState::states::R2LA):
-			std::cout<<"R2LA"<<std::endl;			
+
+			if( print>30 )			
+				std::cout<<"R2LA"<<std::endl;			
 
             clampZSP();
             hold();
@@ -304,14 +441,18 @@ void Lander::run() {
             break;
 
         case (AbstractLandState::states::COMP):
-			std::cout<<"COMP"<<std::endl;
+			
+			if( print>30 )
+				std::cout<<"COMP"<<std::endl;
 
             hold();
             comp();
 
             break;
         case (AbstractLandState::states::LAND):
-			std::cout<<"LAND"<<std::endl;		
+			
+			if( print>30 )			
+				std::cout<<"LAND"<<std::endl;		
 
             initDone = false;
             land();
@@ -324,6 +465,11 @@ void Lander::run() {
             break;
 
     }
+
+	if (print > 30){
+		printSignals();
+		print = 0;
+	}
 
 
 }
@@ -342,8 +488,8 @@ void Lander::updateIntegrals() {
 
     double tempx,tempy;
 
-    tempx = common::clamp(_err_int[0],params_automatic::minIntValue,params_automatic::maxIntValue);
-    tempy = common::clamp(_err_int[1],params_automatic::minIntValue,params_automatic::maxIntValue);
+    tempx = common::clamp(_err_int[0],param.minIntValue,param.maxIntValue);
+    tempy = common::clamp(_err_int[1],param.minIntValue,param.maxIntValue);
 
     _err_int[0] =  tempx;
     _err_int[1] =  tempy;
@@ -372,9 +518,24 @@ void Lander::init() {
     resetSetPoint();
 
     //Go to max tracking height
-    _setPoint.setZ(params_automatic::zMax);
+    _setPoint.setZ(param.zMax);
 
 }
+
+void Lander::hovering() {
+
+	if(!_hovering) {
+		_setPoint.setX(starting_x);
+		_setPoint.setX(starting_x);
+		_setPoint.setType(MavState::POSITION);	
+		_hovering = true;
+	}
+
+
+}
+
+
+
 
 void Lander::hold() {
 
@@ -435,11 +596,11 @@ void Lander::comp() {
 	else{
 		
 		dz = (_UltraInfo.getZ() - params_automatic::OffsetUltraSensor);
-		std::cout<<"ULTRASENSOR"<<std::endl;	
+		//std::cout<<"ULTRASENSOR"<<std::endl;	
 	}
 
     //Calculate desired vertical velocity in order to compensate oscillations
-    double desc = common::interpolate(fabs(dz), DRATE_MAX, DRATE_MIN, TMAX, TMIN);
+     desc_velocity = common::interpolate(fabs(dz), DRATE_MAX, DRATE_MIN, TMAX, TMIN);
     
 	//FIRST
     //double z_target_v = _platformState.getVz() - desc;
@@ -455,8 +616,8 @@ void Lander::comp() {
 	//std::cout<<"Target: "<< z_target_v << std::endl;
 	//std::cout<<"MyTarget: "<< Z_target_v << std::endl;
 	
-	double Err_v = desc - _UltraInfo.getVz();
-	double Z_target_v = params_automatic::KPCompV * (Err_v);
+	double Err_v = desc_velocity - _UltraInfo.getVz();
+	double Z_target_v = param.KPCompV * (Err_v);
 	
 
 
@@ -467,8 +628,8 @@ void Lander::comp() {
 
     _setPoint.setZ((Z_target_v) + _state.getZ());
 	
-    if(_setPoint.getZ() > params_automatic::zMax ){
-	_setPoint.setZ(params_automatic::zMax);
+    if(_setPoint.getZ() > param.zMax ){
+	_setPoint.setZ(param.zMax);
 
     }
 
@@ -478,7 +639,7 @@ void Lander::comp() {
 void Lander::clampZSP() {
 
     double temp;
-    temp = common::clamp(_setPoint.getZ(),params_automatic::zMin,params_automatic::zMax);
+    temp = common::clamp(_setPoint.getZ(),param.zMin,param.zMax);
 
     _setPoint.setZ(temp);
 }

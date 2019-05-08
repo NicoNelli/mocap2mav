@@ -101,7 +101,7 @@ void Parameters::loadParamFile(const char *config_file) {
                 maxOutput = value;
             
         }
-
+    cFile.close();
 
 
 

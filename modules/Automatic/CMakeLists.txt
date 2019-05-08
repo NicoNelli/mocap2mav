@@ -11,8 +11,11 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 ##find_package(Qt5Widgets REQUIRED)
 #find_package(Qt5Network)
 
-set(PROJECT_SRCS
-src/main.cpp ${PROJECT_SRC_DIR}/MavState.cpp include/parameters.h)
+set(PROJECT_SRCS src/main.cpp ${PROJECT_SRC_DIR}/MavState.cpp include/param.h)
+
+set(PROJECT_SRCS src/main.cpp ${PROJECT_SRC_DIR}/MavState.cpp include/Lander/Parameters.h)
+
+
 file(GLOB_RECURSE COMM include/Command/*.hpp)
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${PROJECT_INCLUDE_DIR}")
@@ -34,6 +37,8 @@ pkg_search_module(LCM REQUIRED lcm)
 		 ${PROJECT_SRC_DIR}/MavState.cpp
 		 ${PROJECT_INCLUDE_DIR}/common/MavState.h
 		 libs/Lander.cpp
+		 libs/Parameters.cpp
+		 include/Lander/Parameters.h
 		 include/Lander/Lander.h
 		 include/Lander/StatesClasses.hpp
 		 libs/StateClasses.cpp)

@@ -33,13 +33,17 @@ public:
     void initStateMachine();
     void setState(MavState pose);
     void handleMachine();
+    void loadMachine();
     void updateSignals();
+    void printSignals();
     int getActualMachineState();
     MavState getState();
     MavState getCommand();
     void run();
 
     bool switchSensor; //used to switch between vision system and ultrasonic sensor.
+
+    bool _resetMachine; //used to reset the whole machine state.
 
     //perform inspection
     double time;

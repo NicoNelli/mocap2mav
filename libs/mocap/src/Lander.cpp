@@ -15,9 +15,11 @@ Lander::Lander()
           _actualState(0),_prevState(0), _verticalErr(0), _holdPIDX(0,0,0), _holdPIDY(0,0,0)
 {
 
-
-    //Load parameters
+////Load parameters
     param.loadConfigFile("Landing_params.txt");
+
+    _holdPIDX.reset();
+    _holdPIDY.reset();
 
     _holdPIDX.setP(param.KpHold);
     _holdPIDX.setI(param.KiHold);
@@ -27,6 +29,24 @@ Lander::Lander()
     _holdPIDY.setI(param.KiHold);
     _holdPIDY.setD(param.KdHold);
 
+    _holdPIDX.setMaxIOutput(param.maxIntValue);
+    _holdPIDY.setMaxIOutput(param.maxIntValue);
+    //put a saturation for the integral part of the PID
+
+    _holdPIDX.setOutputLimits(param.maxOutput);
+    //put a saturation for the whole PID
+
+    _tauHold = param.hold_threshold;
+    _tauLost = param.lost_threshold;
+    //this two parameters are thresholds for the horizontal error.
+////
+
+    //stored starting local position
+    starting_x = _state.getX();
+    starting_y = _state.getY();
+    starting_z = _state.getZ();
+    _home = false;
+
     initStateMachine();
     //set the state machine
 
@@ -34,14 +54,6 @@ Lander::Lander()
     //set the actual state of the machine, intially is is INIT
 
     _err_prev = _err;
-
-    
-    _holdPIDX.setMaxIOutput(param.maxIntValue);
-    _holdPIDY.setMaxIOutput(param.maxIntValue);
-    //put a saturation for the integral part of the PID
-
-    _holdPIDX.setOutputLimits(param.maxOutput);
-    //put a saturation for the whole PID
 }
 
 void Lander::setState(MavState pose) {
@@ -56,17 +68,63 @@ MavState Lander::getCommand() {
     return _setPoint;
 }
 
-void Lander::initStateMachine() {
 
-	Inspection = false;
-    
-    switchSensor = false;
+void Lander::loadMachine() {
+
+    param.loadConfigFile("Landing_params.txt");
+
+    _holdPIDX.setP(param.KpHold);
+    _holdPIDX.setI(param.KiHold);
+    _holdPIDX.setD(param.KdHold);
+
+    _holdPIDY.setP(param.KpHold);
+    _holdPIDY.setI(param.KiHold);
+    _holdPIDY.setD(param.KdHold);
+
+    _holdPIDX.setMaxIOutput(param.maxIntValue);
+    _holdPIDY.setMaxIOutput(param.maxIntValue);
+    //put a saturation for the integral part of the PID
+
+    _holdPIDX.setOutputLimits(param.maxOutput);
+    //put a saturation for the whole PID
+
+    _tauHold = param.hold_threshold;
+    _tauLost = param.lost_threshold;
 
     //stored starting local position
     starting_x = _state.getX();
     starting_y = _state.getY();
     starting_z = _state.getZ();
     _home = false;
+
+}
+
+void Lander::initStateMachine() {
+
+	Inspection = false;
+    
+    switchSensor = false;
+
+    _resetMachine = false;
+
+    //reset variables
+    _horizontaErr = (double)0;
+    _tauHold = (double)0;
+    _tauLost = (double)0;
+    _tauErr = (double)0;
+    _NHold = 0;
+    _NLost = 0;
+    _NComp = 0;
+
+    _err << 0,0,0;
+    _err_int << 0,0,0; 
+    _err_diff << 0,0,0; 
+    _dt = 0; 
+    _prevTime = 0; 
+    _actualTime = 0;
+    _verticalErr = 0;
+    _actualState = 0;
+    _prevState = 0;
 
     //Link signals
     //assign initialized errors of the Lander class with
@@ -117,13 +175,6 @@ void Lander::initStateMachine() {
     _landS._nextState       = &_asceS;
 
     _machine.setStatePtr(&_initS); //set the state with the INIT one.
-
-    _tauHold = param.hold_threshold;
-    _tauLost = param.lost_threshold;
-    //this two parameters are thresholds for the horizontal error.
-
-
-
 
 
     //Print actual state
@@ -230,8 +281,14 @@ void Lander::updateSignals() {
 
     _err_prev = _err;
 
+}
+
+void Lander::printSignals(){
+
 #ifdef DEBUG
     
+    std::cout<<"altezza: "<<param.zMax<<std::endl;
+
     std::cout << "**********************************" << std::endl;
     std::cout << "STATE: " << _actualState<< std::endl;
     std::cout << "HERRO: " << _horizontaErr<< std::endl;
@@ -243,7 +300,7 @@ void Lander::updateSignals() {
     std::cout << "NHOLD: " << _NHold<< std::endl;
     std::cout << "NLOST: " << _NLost<< std::endl;
     std::cout << "NCOMP: " << _NComp<< std::endl;
-    std::cout<<"inspection: "<<Inspection<<std::endl;
+    std::cout <<"inspection: "<<Inspection<<std::endl;
 
 
     //std::cout << "INTEX: " << _err_int[0] << std::endl;
@@ -252,28 +309,48 @@ void Lander::updateSignals() {
     
 #endif
 
-
 }
+
 
 void Lander::handleMachine() {
 
-    updateSignals();
-    /*
-    --computes the horizontal and vertical error of the actual state.
+    //isValid = 1 ==> OFFBOARD
+    //isValid = 0 ==> ANOTHER FLIGHT MODE
+    if(!_state.isValid && !_resetMachine){
+        initStateMachine();
+        _resetMachine = true;
+    }
+    else if( _state.isValid ){ //OFFBOARD
+        
+        if(_resetMachine){
+            loadMachine();
+            _resetMachine = false;
+        }
 
-    --check if the horizontal error is under a given threshold(_tauHold and _tauLost)
-      incrementing or nullifying NLost or NHold.
+        updateSignals();
+        
+        //--computes the horizontal and vertical error of the actual state.
 
-    --then, st the boolean value _holding, lost, centering based on the value of NLost or Nhold. 
+        //--check if the horizontal error is under a given threshold(_tauHold and _tauLost)
+        //incrementing or nullifying NLost or NHold.
 
-    --if the UAV is centered the variable NComp is incremented.
+        //--then, st the boolean value _holding, lost, centering based on the value of NLost or Nhold. 
 
-    */
+        //--if the UAV is centered the variable NComp is incremented.
+        
+
+        _machine.handle();
+        //Being such function virtual, will be defined by its derived classes.
+        //depending on the actual state a different function is called.
 
 
-    _machine.handle();
-    //Being such function virtual, will be defined by its derived classes.
-    //depending on the actual state a different function is called.
+
+}
+
+    std::cout<<"reset"<<_resetMachine<<std::endl;
+
+
+printSignals();
 
 }
 
